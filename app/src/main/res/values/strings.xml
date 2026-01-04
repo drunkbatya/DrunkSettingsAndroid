@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">DrunkSettings</string>
+    <string name="xposed_description">Logs NotificationManagerService calls</string>
 </resources>
