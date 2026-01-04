@@ -1,6 +1,9 @@
 package com.drunkbatya.drunksettings.data
 
 import android.content.Context
+import android.util.Log
+import org.json.JSONArray
+import org.json.JSONObject
 import java.io.File
 
 object SettingsStore {
@@ -37,6 +40,41 @@ object SettingsStore {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         prefs.edit().putInt(appKey(packageName), seconds).commit()
         makePrefsReadable(context)
+    }
+
+    fun clearAppMinSoundTimeout(context: Context, packageName: String) {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        prefs.edit().remove(appKey(packageName)).commit()
+        makePrefsReadable(context)
+    }
+
+    fun wipeAll(context: Context) {
+        val deleted = context.deleteSharedPreferences(PREFS_NAME)
+        if (!deleted) {
+            val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            prefs.edit().clear().commit()
+            val prefsFile = File(context.applicationInfo.dataDir, "shared_prefs/$PREFS_NAME.xml")
+            prefsFile.delete()
+        }
+    }
+
+    fun dumpToLog(context: Context) {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val json = JSONObject()
+        val entries = prefs.all.toSortedMap()
+        for ((key, value) in entries) {
+            when (value) {
+                null -> json.put(key, JSONObject.NULL)
+                is Boolean, is Int, is Long, is Float, is String -> json.put(key, value)
+                is Set<*> -> {
+                    val array = JSONArray()
+                    value.filterIsInstance<String>().forEach { array.put(it) }
+                    json.put(key, array)
+                }
+                else -> json.put(key, value.toString())
+            }
+        }
+        Log.i("DrunkSettings", "settings=$json")
     }
 
     private fun makePrefsReadable(context: Context) {
