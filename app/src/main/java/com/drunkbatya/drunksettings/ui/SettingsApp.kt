@@ -7,6 +7,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import com.drunkbatya.drunksettings.ui.screens.AppDetailScreen
 import com.drunkbatya.drunksettings.ui.screens.AppNotificationsScreen
+import com.drunkbatya.drunksettings.ui.screens.AboutScreen
 import com.drunkbatya.drunksettings.ui.screens.DebugAppScreen
 import com.drunkbatya.drunksettings.ui.screens.DebugNotificationsScreen
 import com.drunkbatya.drunksettings.ui.screens.DebugScreen
@@ -31,7 +32,8 @@ fun SettingsApp() {
     when (current) {
         Screen.Main -> MainScreen(
             onOpenNotifications = { backStack.add(Screen.Notifications) },
-            onOpenDebug = { backStack.add(Screen.Debug) }
+            onOpenDebug = { backStack.add(Screen.Debug) },
+            onOpenAbout = { backStack.add(Screen.About) }
         )
         Screen.Notifications -> NotificationsScreen(
             onBack = { onBack.value.invoke() },
@@ -58,6 +60,9 @@ fun SettingsApp() {
         Screen.DebugApp -> DebugAppScreen(
             onBack = { onBack.value.invoke() }
         )
+        Screen.About -> AboutScreen(
+            onBack = { onBack.value.invoke() }
+        )
         is Screen.AppDetail -> {
             val app = current
             AppDetailScreen(
@@ -75,6 +80,7 @@ sealed interface Screen {
     data object Debug : Screen
     data object DebugNotifications : Screen
     data object DebugApp : Screen
+    data object About : Screen
     data object General : Screen
     data object AppNotifications : Screen
     data class AppDetail(val packageName: String, val label: String) : Screen

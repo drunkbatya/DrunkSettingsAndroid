@@ -3,6 +3,7 @@ package com.drunkbatya.drunksettings.ui.screens
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.BugReport
+import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.runtime.Composable
 import com.drunkbatya.drunksettings.ui.components.SettingsIcon
@@ -12,7 +13,8 @@ import com.drunkbatya.drunksettings.ui.components.SettingsScaffold
 @Composable
 fun MainScreen(
     onOpenNotifications: () -> Unit,
-    onOpenDebug: () -> Unit
+    onOpenDebug: () -> Unit,
+    onOpenAbout: () -> Unit
 ) {
     SettingsScaffold(title = "Settings") { padding ->
         LazyColumn(contentPadding = padding) {
@@ -40,6 +42,19 @@ fun MainScreen(
                         )
                     },
                     onClick = onOpenDebug
+                )
+            }
+            item {
+                SettingsListItem(
+                    title = "About",
+                    summary = "App info and links",
+                    leadingContent = {
+                        SettingsIcon(
+                            icon = Icons.Rounded.Info,
+                            contentDescription = null
+                        )
+                    },
+                    onClick = onOpenAbout
                 )
             }
         }
