@@ -1,12 +1,14 @@
 package com.drunkbatya.drunksettings.data
 
-import android.content.SharedPreferences
 import android.util.Log
 import io.github.libxposed.service.XposedService
 import org.json.JSONArray
 import org.json.JSONObject
+import androidx.core.content.edit
 
 class SettingsStore(private val service: XposedService) {
+    val prefs = service.getRemotePreferences(PREFS_NAME)
+
     companion object {
         const val PREFS_NAME = "NotificationManagerSupervisor"
         const val KEY_GENERAL_MIN_SOUND = "general_min_notification_sound_timeout"
@@ -17,29 +19,25 @@ class SettingsStore(private val service: XposedService) {
         }
     }
 
-    private val prefsCache: SharedPreferences by lazy {
-        service.getRemotePreferences(PREFS_NAME)
-    }
-
-    fun getPrefs(): SharedPreferences {
-        return prefsCache
-    }
-
     fun getAppMinSoundTimeout(packageName: String): Int? {
         val key = appKey(packageName)
-        return if (prefsCache.contains(key)) prefsCache.getInt(key, DEFAULT_MIN_SOUND) else null
+        return if (prefs.contains(key)) prefs.getInt(key, DEFAULT_MIN_SOUND) else null
+    }
+
+    fun getGeneralMinSoundTimeout(): Int {
+        return prefs.getInt(KEY_GENERAL_MIN_SOUND, DEFAULT_MIN_SOUND)
     }
 
     fun setGeneralMinSoundTimeout(seconds: Int) {
-        prefsCache.edit().putInt(KEY_GENERAL_MIN_SOUND, seconds).commit()
+        prefs.edit(commit = true) { putInt(KEY_GENERAL_MIN_SOUND, seconds) }
     }
 
     fun setAppMinSoundTimeout(packageName: String, seconds: Int) {
-        prefsCache.edit().putInt(appKey(packageName), seconds).commit()
+        prefs.edit(commit = true) { putInt(appKey(packageName), seconds) }
     }
 
     fun clearAppMinSoundTimeout(packageName: String) {
-        prefsCache.edit().remove(appKey(packageName)).commit()
+        prefs.edit(commit = true) { remove(appKey(packageName)) }
     }
 
     fun wipeAll() {
@@ -48,7 +46,7 @@ class SettingsStore(private val service: XposedService) {
 
     fun dumpToLog() {
         val json = JSONObject()
-        val entries = prefsCache.all.toSortedMap()
+        val entries = prefs.all.toSortedMap()
         for ((key, value) in entries) {
             when (value) {
                 null -> json.put(key, JSONObject.NULL)

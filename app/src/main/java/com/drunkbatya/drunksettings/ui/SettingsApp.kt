@@ -15,10 +15,9 @@ import com.drunkbatya.drunksettings.ui.screens.GeneralMinSoundScreen
 import com.drunkbatya.drunksettings.ui.screens.GeneralScreen
 import com.drunkbatya.drunksettings.ui.screens.MainScreen
 import com.drunkbatya.drunksettings.ui.screens.NotificationsScreen
-import com.drunkbatya.drunksettings.data.SettingsStore
 
 @Composable
-fun SettingsApp(settingsStore: SettingsStore) {
+fun SettingsApp() {
     val backStack = remember { mutableStateListOf<Screen>(Screen.Main) }
     val current = backStack.last()
     val onBack = rememberUpdatedState {
@@ -47,12 +46,10 @@ fun SettingsApp(settingsStore: SettingsStore) {
             onOpenApp = { backStack.add(Screen.DebugApp) }
         )
         Screen.General -> GeneralScreen(
-            settingsStore = settingsStore,
             onBack = { onBack.value.invoke() },
             onOpenMinSound = { backStack.add(Screen.GeneralMinSound) }
         )
         Screen.GeneralMinSound -> GeneralMinSoundScreen(
-            settingsStore = settingsStore,
             onBack = { onBack.value.invoke() }
         )
         Screen.AppNotifications -> AppNotificationsScreen(
@@ -65,13 +62,11 @@ fun SettingsApp(settingsStore: SettingsStore) {
             onBack = { onBack.value.invoke() }
         )
         Screen.DebugApp -> DebugAppScreen(
-            settingsStore = settingsStore,
             onBack = { onBack.value.invoke() }
         )
         is Screen.AppDetail -> {
             val app = current
             AppDetailScreen(
-                settingsStore = settingsStore,
                 appLabel = app.label,
                 appPackage = app.packageName,
                 onBack = { onBack.value.invoke() },
@@ -81,7 +76,6 @@ fun SettingsApp(settingsStore: SettingsStore) {
         is Screen.AppMinSound -> {
             val app = current
             AppMinSoundScreen(
-                settingsStore = settingsStore,
                 packageName = app.packageName,
                 onBack = { onBack.value.invoke() }
             )

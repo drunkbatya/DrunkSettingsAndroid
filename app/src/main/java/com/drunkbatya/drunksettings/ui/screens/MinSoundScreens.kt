@@ -3,26 +3,31 @@ package com.drunkbatya.drunksettings.ui.screens
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.Composable
-import com.drunkbatya.drunksettings.data.SettingsStore
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import com.drunkbatya.drunksettings.ui.components.OptionListItem
 import com.drunkbatya.drunksettings.ui.components.SettingsScaffold
 import com.drunkbatya.drunksettings.ui.model.MIN_SOUND_TITLE
 import com.drunkbatya.drunksettings.ui.model.timeoutOptions
-import com.drunkbatya.drunksettings.ui.state.rememberAppSpecificTimeout
-import com.drunkbatya.drunksettings.ui.state.rememberGeneralMinSound
+import com.drunkbatya.drunksettings.ui.LocalSettingsStore
 
 @Composable
 fun GeneralMinSoundScreen(
-    settingsStore: SettingsStore,
     onBack: () -> Unit
 ) {
-    val selected = rememberGeneralMinSound(settingsStore)
+    val settingsStore = LocalSettingsStore.current
+    var selected by remember {
+        mutableIntStateOf(settingsStore.getGeneralMinSoundTimeout())
+    }
     MinSoundOptionsScreen(
-        selectedSeconds = selected.intValue,
+        selectedSeconds = selected,
         onBack = onBack,
         includeNotSet = false,
         onSelect = { seconds ->
-            selected.intValue = seconds
+            selected = seconds
             settingsStore.setGeneralMinSoundTimeout(seconds)
         },
         onClear = {}
@@ -31,21 +36,23 @@ fun GeneralMinSoundScreen(
 
 @Composable
 fun AppMinSoundScreen(
-    settingsStore: SettingsStore,
     packageName: String,
     onBack: () -> Unit
 ) {
-    val selected = rememberAppSpecificTimeout(settingsStore, packageName)
+    val settingsStore = LocalSettingsStore.current
+    var selected by remember(packageName) {
+        mutableStateOf(settingsStore.getAppMinSoundTimeout(packageName))
+    }
     MinSoundOptionsScreen(
-        selectedSeconds = selected.value,
+        selectedSeconds = selected,
         onBack = onBack,
         includeNotSet = true,
         onSelect = { seconds ->
-            selected.value = seconds
+            selected = seconds
             settingsStore.setAppMinSoundTimeout(packageName, seconds)
         },
         onClear = {
-            selected.value = null
+            selected = null
             settingsStore.clearAppMinSoundTimeout(packageName)
         }
     )

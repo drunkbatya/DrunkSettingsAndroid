@@ -16,9 +16,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
-import com.drunkbatya.drunksettings.data.SettingsStore
 import com.drunkbatya.drunksettings.ui.components.SettingsListItem
 import com.drunkbatya.drunksettings.ui.components.SettingsScaffold
+import com.drunkbatya.drunksettings.ui.LocalSettingsStore
 import com.drunkbatya.drunksettings.ui.util.sendTestNotification
 
 @Composable
@@ -84,9 +84,9 @@ fun DebugNotificationsScreen(
 
 @Composable
 fun DebugAppScreen(
-    settingsStore: SettingsStore,
     onBack: () -> Unit
 ) {
+    val settingsStore = LocalSettingsStore.current
     var showDialog by remember { mutableStateOf(false) }
 
     SettingsScaffold(title = "App", onBack = onBack) { padding ->
