@@ -19,6 +19,7 @@ fun MainScreen(
             item {
                 SettingsListItem(
                     title = "Notifications",
+                    summary = "Sound limits and per-app rules",
                     leadingContent = {
                         SettingsIcon(
                             icon = Icons.Rounded.Notifications,
@@ -31,6 +32,7 @@ fun MainScreen(
             item {
                 SettingsListItem(
                     title = "Debug",
+                    summary = "Tools for testing and storage",
                     leadingContent = {
                         SettingsIcon(
                             icon = Icons.Rounded.BugReport,

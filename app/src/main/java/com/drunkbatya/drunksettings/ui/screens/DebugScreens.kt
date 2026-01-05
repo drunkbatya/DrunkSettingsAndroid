@@ -39,6 +39,7 @@ fun DebugScreen(
             item {
                 SettingsListItem(
                     title = "Notifications",
+                    summary = "Send test notifications",
                     leadingContent = {
                         SettingsIcon(
                             icon = Icons.Rounded.NotificationsActive,
@@ -51,6 +52,7 @@ fun DebugScreen(
             item {
                 SettingsListItem(
                     title = "App",
+                    summary = "Storage and logging tools",
                     leadingContent = {
                         SettingsIcon(
                             icon = Icons.Rounded.BugReport,
@@ -94,6 +96,7 @@ fun DebugNotificationsScreen(
             item {
                 SettingsListItem(
                     title = "Test sound notification",
+                    summary = "Post a notification with sound",
                     leadingContent = {
                         SettingsIcon(
                             icon = Icons.AutoMirrored.Rounded.VolumeUp,
@@ -119,6 +122,7 @@ fun DebugAppScreen(
             item {
                 SettingsListItem(
                     title = "Wipe shared settings",
+                    summary = "Remove all saved limits",
                     leadingContent = {
                         SettingsIcon(
                             icon = Icons.Rounded.DeleteForever,
@@ -131,6 +135,7 @@ fun DebugAppScreen(
             item {
                 SettingsListItem(
                     title = "Dump settings to logs",
+                    summary = "Write current prefs to logcat",
                     leadingContent = {
                         SettingsIcon(
                             icon = Icons.AutoMirrored.Rounded.ListAlt,
