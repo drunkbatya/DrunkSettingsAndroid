@@ -1,7 +1,7 @@
 package com.drunkbatya.drunksettings.xposed
 
+import android.content.SharedPreferences
 import android.os.SystemClock
-import com.drunkbatya.drunksettings.data.SettingsStore
 import io.github.libxposed.api.XposedInterface
 import io.github.libxposed.api.XposedModule
 import io.github.libxposed.api.XposedModuleInterface
@@ -13,7 +13,8 @@ class NotificationManagerSupervisor(
     param: XposedModuleInterface.ModuleLoadedParam,
 ) : XposedModule(base, param) {
     private val lastSoundByPackage = ConcurrentHashMap<String, Long>()
-    private val prefs = SettingsFilePrefs(MODULE_PACKAGE, SettingsStore.PREFS_NAME, ::log)
+
+    private lateinit var prefs: SharedPreferences
 
     init {
         ModuleBridge.moduleInstance = this
@@ -22,7 +23,7 @@ class NotificationManagerSupervisor(
 
     override fun onSystemServerLoaded(param: XposedModuleInterface.SystemServerLoadedParam) {
         log(TAG + "onSystemServerLoaded")
-        ensurePrefsReady()
+        prefs = getRemotePreferences("NotificationManagerSupervisor")
         installHooks(param.classLoader)
     }
 
@@ -30,7 +31,7 @@ class NotificationManagerSupervisor(
         val className = "com.android.server.notification.NotificationAttentionHelper"
         val attentionClass = findClass(className, classLoader)
         if (attentionClass == null) {
-            log(TAG + "failed to found class: ${className}")
+            log(TAG + "failed to found class: $className")
             return
         }
         //hookTargetMethod(attentionClass, "buzzBeepBlinkLocked", BuzzBeepBlinkHooker::class.java)
@@ -48,10 +49,10 @@ class NotificationManagerSupervisor(
             log(TAG + "successfully hooked method: $targetMethod in ${targetClass.name}")
 
         } catch (e: NoSuchMethodException) {
-            log(TAG + "method not found: $targetMethod in ${targetClass.name}")
+            log(TAG + "method not found: $targetMethod in ${targetClass.name}: $e")
 
         } catch (e: SecurityException) {
-            log(TAG + "security exception while hooking $targetMethod in ${targetClass.name}")
+            log(TAG + "security exception while hooking $targetMethod in ${targetClass.name}: $e")
 
         } catch (e: Throwable) {
             log(TAG + "unexpected error while hooking $targetMethod in ${targetClass.name}: ${e.message}")
@@ -59,20 +60,14 @@ class NotificationManagerSupervisor(
     }
 
     private fun resolveLimitSeconds(packageName: String): Int {
-        ensurePrefsReady()
-        val appKey = SettingsStore.appKey(packageName)
-        val hasApp = prefs.contains(appKey)
-        val hasGeneral = prefs.contains(SettingsStore.KEY_GENERAL_MIN_SOUND)
         val generalValue = prefs.getInt(
-            SettingsStore.KEY_GENERAL_MIN_SOUND,
-            SettingsStore.DEFAULT_MIN_SOUND
+            "general_min_notification_sound_timeout",
+            0
         )
-        log("DrunkSettings: prefs for $packageName appKey=$hasApp generalKey=$hasGeneral general=$generalValue")
-        return if (hasApp) {
-            prefs.getInt(appKey, SettingsStore.DEFAULT_MIN_SOUND)
-        } else {
-            generalValue
-        }
+        val appKey = "min_notification_sound_timeout_$packageName"
+        val appValue = prefs.getInt(appKey, generalValue)
+        log("DrunkSettings: prefs for $packageName appKey=$appKey appValue=$appValue generalValue=$generalValue")
+        return appValue
     }
 
     private fun shouldMuteNow(packageName: String): Boolean {
@@ -83,10 +78,7 @@ class NotificationManagerSupervisor(
 
         val now = SystemClock.elapsedRealtime()
         val last = lastSoundByPackage[packageName] ?: return false
-        if (now - last >= limitSeconds * 1000L) {
-            return false
-        }
-        return true
+        return now - last < limitSeconds * 1000L
     }
 
     private fun extractPackageName(record: Any): String? {
@@ -125,7 +117,6 @@ class NotificationManagerSupervisor(
         lastSoundByPackage[packageName] = SystemClock.elapsedRealtime()
     }
     companion object {
-        private const val MODULE_PACKAGE = "com.drunkbatya.drunksettings"
         private const val TAG = "DrunkSettings: "
     }
 }

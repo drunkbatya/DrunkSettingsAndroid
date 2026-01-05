@@ -15,9 +15,10 @@ import com.drunkbatya.drunksettings.ui.screens.GeneralMinSoundScreen
 import com.drunkbatya.drunksettings.ui.screens.GeneralScreen
 import com.drunkbatya.drunksettings.ui.screens.MainScreen
 import com.drunkbatya.drunksettings.ui.screens.NotificationsScreen
+import io.github.libxposed.service.XposedService
 
 @Composable
-fun SettingsApp() {
+fun SettingsApp(mService: XposedService) {
     val backStack = remember { mutableStateListOf<Screen>(Screen.Main) }
     val current = backStack.last()
     val onBack = rememberUpdatedState {
@@ -41,15 +42,18 @@ fun SettingsApp() {
             onOpenApps = { backStack.add(Screen.AppNotifications) }
         )
         Screen.Debug -> DebugScreen(
+            mService = mService,
             onBack = { onBack.value.invoke() },
             onOpenNotifications = { backStack.add(Screen.DebugNotifications) },
             onOpenApp = { backStack.add(Screen.DebugApp) }
         )
         Screen.General -> GeneralScreen(
+            mService = mService,
             onBack = { onBack.value.invoke() },
             onOpenMinSound = { backStack.add(Screen.GeneralMinSound) }
         )
         Screen.GeneralMinSound -> GeneralMinSoundScreen(
+            mService = mService,
             onBack = { onBack.value.invoke() }
         )
         Screen.AppNotifications -> AppNotificationsScreen(
@@ -62,11 +66,13 @@ fun SettingsApp() {
             onBack = { onBack.value.invoke() }
         )
         Screen.DebugApp -> DebugAppScreen(
+            mService = mService,
             onBack = { onBack.value.invoke() }
         )
         is Screen.AppDetail -> {
             val app = current
             AppDetailScreen(
+                mService = mService,
                 appLabel = app.label,
                 appPackage = app.packageName,
                 onBack = { onBack.value.invoke() },
@@ -76,6 +82,7 @@ fun SettingsApp() {
         is Screen.AppMinSound -> {
             val app = current
             AppMinSoundScreen(
+                mService = mService,
                 packageName = app.packageName,
                 onBack = { onBack.value.invoke() }
             )

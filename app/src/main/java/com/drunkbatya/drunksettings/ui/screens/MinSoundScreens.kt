@@ -11,20 +11,22 @@ import com.drunkbatya.drunksettings.ui.model.MIN_SOUND_TITLE
 import com.drunkbatya.drunksettings.ui.model.timeoutOptions
 import com.drunkbatya.drunksettings.ui.state.rememberAppSpecificTimeout
 import com.drunkbatya.drunksettings.ui.state.rememberGeneralMinSound
+import io.github.libxposed.service.XposedService
 
 @Composable
 fun GeneralMinSoundScreen(
+    mService: XposedService,
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
-    val selected = rememberGeneralMinSound()
+    val selected = rememberGeneralMinSound(mService)
     MinSoundOptionsScreen(
         selectedSeconds = selected.intValue,
         onBack = onBack,
         includeNotSet = false,
         onSelect = { seconds ->
             selected.intValue = seconds
-            SettingsStore.setGeneralMinSoundTimeout(context, seconds)
+            SettingsStore.setGeneralMinSoundTimeout(mService, seconds)
         },
         onClear = {}
     )
@@ -32,22 +34,23 @@ fun GeneralMinSoundScreen(
 
 @Composable
 fun AppMinSoundScreen(
+    mService: XposedService,
     packageName: String,
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
-    val selected = rememberAppSpecificTimeout(packageName)
+    val selected = rememberAppSpecificTimeout(mService, packageName)
     MinSoundOptionsScreen(
         selectedSeconds = selected.value,
         onBack = onBack,
         includeNotSet = true,
         onSelect = { seconds ->
             selected.value = seconds
-            SettingsStore.setAppMinSoundTimeout(context, packageName, seconds)
+            SettingsStore.setAppMinSoundTimeout(mService, packageName, seconds)
         },
         onClear = {
             selected.value = null
-            SettingsStore.clearAppMinSoundTimeout(context, packageName)
+            SettingsStore.clearAppMinSoundTimeout(mService, packageName)
         }
     )
 }

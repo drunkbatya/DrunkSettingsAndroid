@@ -57,6 +57,6 @@ dependencies {
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
-    compileOnly(libs.libxposed.api)
     implementation(libs.libxposed.service)
+    compileOnly(libs.libxposed.api)
 }

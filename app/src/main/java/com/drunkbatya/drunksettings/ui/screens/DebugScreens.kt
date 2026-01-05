@@ -20,9 +20,11 @@ import com.drunkbatya.drunksettings.ui.components.SettingsListItem
 import com.drunkbatya.drunksettings.ui.components.SettingsScaffold
 import com.drunkbatya.drunksettings.data.SettingsStore
 import com.drunkbatya.drunksettings.ui.util.sendTestNotification
+import io.github.libxposed.service.XposedService
 
 @Composable
 fun DebugScreen(
+    mService: XposedService,
     onBack: () -> Unit,
     onOpenNotifications: () -> Unit,
     onOpenApp: () -> Unit
@@ -84,6 +86,7 @@ fun DebugNotificationsScreen(
 
 @Composable
 fun DebugAppScreen(
+    mService: XposedService,
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
@@ -100,7 +103,7 @@ fun DebugAppScreen(
             item {
                 SettingsListItem(
                     title = "Dump settings to logs",
-                    onClick = { SettingsStore.dumpToLog(context) }
+                    onClick = { SettingsStore.dumpToLog(mService) }
                 )
             }
         }
@@ -113,7 +116,7 @@ fun DebugAppScreen(
             confirmButton = {
                 TextButton(
                     onClick = {
-                        SettingsStore.wipeAll(context)
+                        SettingsStore.wipeAll(mService)
                         showDialog = false
                     }
                 ) {

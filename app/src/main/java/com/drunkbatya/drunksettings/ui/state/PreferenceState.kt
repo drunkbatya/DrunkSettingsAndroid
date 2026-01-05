@@ -11,12 +11,13 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import com.drunkbatya.drunksettings.data.SettingsStore
+import io.github.libxposed.service.XposedService
 
 @Composable
-fun rememberGeneralMinSound(): MutableIntState {
+fun rememberGeneralMinSound(mService: XposedService): MutableIntState {
     val context = LocalContext.current
     val prefs = remember {
-        SettingsStore.getPrefs(context)
+        SettingsStore.getPrefs(mService)
     }
     val state = remember {
         mutableIntStateOf(
@@ -39,16 +40,14 @@ fun rememberGeneralMinSound(): MutableIntState {
 }
 
 @Composable
-fun rememberAppSpecificTimeout(packageName: String): MutableState<Int?> {
+fun rememberAppSpecificTimeout(mService: XposedService, packageName: String): MutableState<Int?> {
     val context = LocalContext.current
-    val prefs = remember {
-        SettingsStore.getPrefs(context)
-    }
-    val state = remember { mutableStateOf(SettingsStore.getAppMinSoundTimeout(context, packageName)) }
+    val prefs = mService.getRemotePreferences(SettingsStore.PREFS_NAME)
+    val state = remember { mutableStateOf(SettingsStore.getAppMinSoundTimeout(mService, packageName)) }
     DisposableEffect(packageName) {
         val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, changedKey ->
             if (changedKey == SettingsStore.appKey(packageName)) {
-                state.value = SettingsStore.getAppMinSoundTimeout(context, packageName)
+                state.value = SettingsStore.getAppMinSoundTimeout(mService, packageName)
             }
         }
         prefs.registerOnSharedPreferenceChangeListener(listener)
