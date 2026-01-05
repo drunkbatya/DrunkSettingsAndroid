@@ -49,9 +49,15 @@ fun SettingsApp() {
             onBack = { onBack.value.invoke() },
             onOpenMinSound = { backStack.add(Screen.GeneralMinSound) }
         )
-        Screen.GeneralMinSound -> GeneralMinSoundScreen(
-            onBack = { onBack.value.invoke() }
-        )
+        Screen.GeneralMinSound -> {
+            GeneralScreen(
+                onBack = { onBack.value.invoke() },
+                onOpenMinSound = {}
+            )
+            GeneralMinSoundScreen(
+                onBack = { onBack.value.invoke() }
+            )
+        }
         Screen.AppNotifications -> AppNotificationsScreen(
             onBack = { onBack.value.invoke() },
             onOpenApp = { app ->
@@ -70,11 +76,19 @@ fun SettingsApp() {
                 appLabel = app.label,
                 appPackage = app.packageName,
                 onBack = { onBack.value.invoke() },
-                onOpenMinSound = { backStack.add(Screen.AppMinSound(app.packageName)) }
+                onOpenMinSound = {
+                    backStack.add(Screen.AppMinSound(app.packageName, app.label))
+                }
             )
         }
         is Screen.AppMinSound -> {
             val app = current
+            AppDetailScreen(
+                appLabel = app.label,
+                appPackage = app.packageName,
+                onBack = { onBack.value.invoke() },
+                onOpenMinSound = {}
+            )
             AppMinSoundScreen(
                 packageName = app.packageName,
                 onBack = { onBack.value.invoke() }
@@ -93,5 +107,5 @@ sealed interface Screen {
     data object GeneralMinSound : Screen
     data object AppNotifications : Screen
     data class AppDetail(val packageName: String, val label: String) : Screen
-    data class AppMinSound(val packageName: String) : Screen
+    data class AppMinSound(val packageName: String, val label: String) : Screen
 }

@@ -6,6 +6,12 @@ import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.BugReport
+import androidx.compose.material.icons.rounded.DeleteForever
+import androidx.compose.material.icons.rounded.NotificationsActive
+import androidx.compose.material.icons.automirrored.rounded.ListAlt
+import androidx.compose.material.icons.automirrored.rounded.VolumeUp
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -16,6 +22,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
+import com.drunkbatya.drunksettings.ui.components.SettingsIcon
 import com.drunkbatya.drunksettings.ui.components.SettingsListItem
 import com.drunkbatya.drunksettings.ui.components.SettingsScaffold
 import com.drunkbatya.drunksettings.ui.LocalSettingsStore
@@ -32,12 +39,24 @@ fun DebugScreen(
             item {
                 SettingsListItem(
                     title = "Notifications",
+                    leadingContent = {
+                        SettingsIcon(
+                            icon = Icons.Rounded.NotificationsActive,
+                            contentDescription = null
+                        )
+                    },
                     onClick = onOpenNotifications
                 )
             }
             item {
                 SettingsListItem(
                     title = "App",
+                    leadingContent = {
+                        SettingsIcon(
+                            icon = Icons.Rounded.BugReport,
+                            contentDescription = null
+                        )
+                    },
                     onClick = onOpenApp
                 )
             }
@@ -75,6 +94,12 @@ fun DebugNotificationsScreen(
             item {
                 SettingsListItem(
                     title = "Test sound notification",
+                    leadingContent = {
+                        SettingsIcon(
+                            icon = Icons.AutoMirrored.Rounded.VolumeUp,
+                            contentDescription = null
+                        )
+                    },
                     onClick = onTestNotification
                 )
             }
@@ -94,12 +119,24 @@ fun DebugAppScreen(
             item {
                 SettingsListItem(
                     title = "Wipe shared settings",
+                    leadingContent = {
+                        SettingsIcon(
+                            icon = Icons.Rounded.DeleteForever,
+                            contentDescription = null
+                        )
+                    },
                     onClick = { showDialog = true }
                 )
             }
             item {
                 SettingsListItem(
                     title = "Dump settings to logs",
+                    leadingContent = {
+                        SettingsIcon(
+                            icon = Icons.AutoMirrored.Rounded.ListAlt,
+                            contentDescription = null
+                        )
+                    },
                     onClick = { settingsStore.dumpToLog() }
                 )
             }
