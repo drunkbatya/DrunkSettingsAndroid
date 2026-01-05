@@ -39,21 +39,33 @@ class NotificationManagerSupervisor(
         hookTargetMethod(attentionClass, "playVibration", SoundVibrationHooker::class.java)
         hookTargetMethod(attentionClass, "canShowLightsLocked", BlinkHooker::class.java)
         log(TAG + "hooks installed for ${attentionClass.name}")
-        return
     }
 
-    private fun hookTargetMethod(targetClass: Class<*>, targetMethod: String, hooker: Class<out XposedInterface.Hooker>) {
+    private fun hookTargetMethod(
+        targetClass: Class<*>,
+        targetMethod: String,
+        hooker: Class<out XposedInterface.Hooker>
+    ) {
         try {
-            val method = targetClass.getDeclaredMethod(targetMethod)
-            hook(method, hooker)
-            log(TAG + "successfully hooked method: $targetMethod in ${targetClass.name}")
-
-        } catch (e: NoSuchMethodException) {
-            log(TAG + "method not found: $targetMethod in ${targetClass.name}: $e")
-
-        } catch (e: SecurityException) {
-            log(TAG + "security exception while hooking $targetMethod in ${targetClass.name}: $e")
-
+            val methods = LinkedHashSet<Method>()
+            targetClass.declaredMethods.forEach { methods.add(it) }
+            targetClass.methods.forEach { methods.add(it) }
+            var hooked = 0
+            for (method in methods) {
+                if (method.name != targetMethod) {
+                    continue
+                }
+                runCatching { method.isAccessible = true }
+                hook(method, hooker)
+                hooked += 1
+            }
+            if (hooked == 0) {
+                log(TAG + "method not found: $targetMethod in ${targetClass.name}")
+            } else {
+                log(TAG + "successfully hooked $hooked method(s): $targetMethod in ${targetClass.name}")
+            }
+        } catch (_: SecurityException) {
+            log(TAG + "security exception while hooking $targetMethod in ${targetClass.name}")
         } catch (e: Throwable) {
             log(TAG + "unexpected error while hooking $targetMethod in ${targetClass.name}: ${e.message}")
         }
@@ -66,7 +78,7 @@ class NotificationManagerSupervisor(
         )
         val appKey = "min_notification_sound_timeout_$packageName"
         val appValue = prefs.getInt(appKey, generalValue)
-        log("DrunkSettings: prefs for $packageName appKey=$appKey appValue=$appValue generalValue=$generalValue")
+        //log(TAG + "prefs for $packageName appKey=$appKey appValue=$appValue generalValue=$generalValue")
         return appValue
     }
 
@@ -96,7 +108,10 @@ class NotificationManagerSupervisor(
         }
     }
 
-    private fun findClass(name: String, classLoader: ClassLoader): Class<*>? {
+    private fun findClass(
+        @Suppress("SameParameterValue") name: String,
+        classLoader: ClassLoader
+    ): Class<*>? {
         return runCatching { Class.forName(name, false, classLoader) }.getOrNull()
     }
 
@@ -110,7 +125,7 @@ class NotificationManagerSupervisor(
         val record = findNotificationRecord(callback.args) ?: return
         val packageName = extractPackageName(record) ?: return
         if (shouldMuteNow(packageName)) {
-            log(TAG + "muting notification for $packageName")
+            //log(TAG + "muting notification for $packageName")
             callback.returnAndSkip(false)
             return
         }
@@ -120,7 +135,6 @@ class NotificationManagerSupervisor(
         private const val TAG = "DrunkSettings: "
     }
 }
-
 
 
 
