@@ -157,6 +157,9 @@ class NotificationManagerSupervisor(
             callback.returnAndSkip(false)
             return
         }
+        if (isMusicPlaying()) {
+            log(TAG + "sound is playing, but alert will mute it")
+        }
         lastSoundByPackage[packageName] = SystemClock.elapsedRealtime()
     }
 
