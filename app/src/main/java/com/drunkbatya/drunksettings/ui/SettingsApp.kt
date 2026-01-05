@@ -15,10 +15,10 @@ import com.drunkbatya.drunksettings.ui.screens.GeneralMinSoundScreen
 import com.drunkbatya.drunksettings.ui.screens.GeneralScreen
 import com.drunkbatya.drunksettings.ui.screens.MainScreen
 import com.drunkbatya.drunksettings.ui.screens.NotificationsScreen
-import io.github.libxposed.service.XposedService
+import com.drunkbatya.drunksettings.data.SettingsStore
 
 @Composable
-fun SettingsApp(mService: XposedService) {
+fun SettingsApp(settingsStore: SettingsStore) {
     val backStack = remember { mutableStateListOf<Screen>(Screen.Main) }
     val current = backStack.last()
     val onBack = rememberUpdatedState {
@@ -42,18 +42,17 @@ fun SettingsApp(mService: XposedService) {
             onOpenApps = { backStack.add(Screen.AppNotifications) }
         )
         Screen.Debug -> DebugScreen(
-            mService = mService,
             onBack = { onBack.value.invoke() },
             onOpenNotifications = { backStack.add(Screen.DebugNotifications) },
             onOpenApp = { backStack.add(Screen.DebugApp) }
         )
         Screen.General -> GeneralScreen(
-            mService = mService,
+            settingsStore = settingsStore,
             onBack = { onBack.value.invoke() },
             onOpenMinSound = { backStack.add(Screen.GeneralMinSound) }
         )
         Screen.GeneralMinSound -> GeneralMinSoundScreen(
-            mService = mService,
+            settingsStore = settingsStore,
             onBack = { onBack.value.invoke() }
         )
         Screen.AppNotifications -> AppNotificationsScreen(
@@ -66,13 +65,13 @@ fun SettingsApp(mService: XposedService) {
             onBack = { onBack.value.invoke() }
         )
         Screen.DebugApp -> DebugAppScreen(
-            mService = mService,
+            settingsStore = settingsStore,
             onBack = { onBack.value.invoke() }
         )
         is Screen.AppDetail -> {
             val app = current
             AppDetailScreen(
-                mService = mService,
+                settingsStore = settingsStore,
                 appLabel = app.label,
                 appPackage = app.packageName,
                 onBack = { onBack.value.invoke() },
@@ -82,7 +81,7 @@ fun SettingsApp(mService: XposedService) {
         is Screen.AppMinSound -> {
             val app = current
             AppMinSoundScreen(
-                mService = mService,
+                settingsStore = settingsStore,
                 packageName = app.packageName,
                 onBack = { onBack.value.invoke() }
             )

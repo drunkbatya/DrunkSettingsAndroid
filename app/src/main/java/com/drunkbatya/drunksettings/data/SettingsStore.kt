@@ -6,52 +6,49 @@ import io.github.libxposed.service.XposedService
 import org.json.JSONArray
 import org.json.JSONObject
 
-object SettingsStore {
-    const val PREFS_NAME = "NotificationManagerSupervisor"
-    const val KEY_GENERAL_MIN_SOUND = "general_min_notification_sound_timeout"
-    const val DEFAULT_MIN_SOUND = 0
+class SettingsStore(private val service: XposedService) {
+    companion object {
+        const val PREFS_NAME = "NotificationManagerSupervisor"
+        const val KEY_GENERAL_MIN_SOUND = "general_min_notification_sound_timeout"
+        const val DEFAULT_MIN_SOUND = 0
 
-    fun appKey(packageName: String): String {
-        return "min_notification_sound_timeout_$packageName"
-    }
-
-    fun getPrefs(mService: XposedService?): SharedPreferences {
-        val prefs = mService?.getRemotePreferences(PREFS_NAME)
-        if (prefs == null) {
-            throw Exception("fuck")
+        fun appKey(packageName: String): String {
+            return "min_notification_sound_timeout_$packageName"
         }
-        return prefs
     }
 
-    fun getAppMinSoundTimeout(mService: XposedService?, packageName: String): Int? {
-        val prefs = getPrefs(mService) ?: return DEFAULT_MIN_SOUND
+    private val prefsCache: SharedPreferences by lazy {
+        service.getRemotePreferences(PREFS_NAME)
+    }
+
+    fun getPrefs(): SharedPreferences {
+        return prefsCache
+    }
+
+    fun getAppMinSoundTimeout(packageName: String): Int? {
         val key = appKey(packageName)
-        return if (prefs.contains(key)) prefs.getInt(key, DEFAULT_MIN_SOUND) else null
+        return if (prefsCache.contains(key)) prefsCache.getInt(key, DEFAULT_MIN_SOUND) else null
     }
 
-    fun setGeneralMinSoundTimeout(mService: XposedService?, seconds: Int) {
-        val prefs = getPrefs(mService) ?: return
-        prefs.edit().putInt(KEY_GENERAL_MIN_SOUND, seconds).commit()
+    fun setGeneralMinSoundTimeout(seconds: Int) {
+        prefsCache.edit().putInt(KEY_GENERAL_MIN_SOUND, seconds).commit()
     }
 
-    fun setAppMinSoundTimeout(mService: XposedService?, packageName: String, seconds: Int) {
-        val prefs = getPrefs(mService) ?: return
-        prefs.edit().putInt(appKey(packageName), seconds).commit()
+    fun setAppMinSoundTimeout(packageName: String, seconds: Int) {
+        prefsCache.edit().putInt(appKey(packageName), seconds).commit()
     }
 
-    fun clearAppMinSoundTimeout(mService: XposedService?, packageName: String) {
-        val prefs = getPrefs(mService) ?: return
-        prefs.edit().remove(appKey(packageName)).commit()
+    fun clearAppMinSoundTimeout(packageName: String) {
+        prefsCache.edit().remove(appKey(packageName)).commit()
     }
 
-    fun wipeAll(mService: XposedService?) {
-        mService?.deleteRemotePreferences(PREFS_NAME)
+    fun wipeAll() {
+        service.deleteRemotePreferences(PREFS_NAME)
     }
 
-    fun dumpToLog(mService: XposedService?) {
-        val prefs = getPrefs(mService) ?: return
+    fun dumpToLog() {
         val json = JSONObject()
-        val entries = prefs.all.toSortedMap()
+        val entries = prefsCache.all.toSortedMap()
         for ((key, value) in entries) {
             when (value) {
                 null -> json.put(key, JSONObject.NULL)

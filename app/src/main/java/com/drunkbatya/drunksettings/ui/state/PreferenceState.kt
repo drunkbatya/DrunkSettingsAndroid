@@ -1,6 +1,5 @@
 package com.drunkbatya.drunksettings.ui.state
 
-import android.content.Context
 import android.content.SharedPreferences
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -9,15 +8,12 @@ import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.ui.platform.LocalContext
 import com.drunkbatya.drunksettings.data.SettingsStore
-import io.github.libxposed.service.XposedService
 
 @Composable
-fun rememberGeneralMinSound(mService: XposedService): MutableIntState {
-    val context = LocalContext.current
-    val prefs = remember {
-        SettingsStore.getPrefs(mService)
+fun rememberGeneralMinSound(settingsStore: SettingsStore): MutableIntState {
+    val prefs = remember(settingsStore) {
+        settingsStore.getPrefs()
     }
     val state = remember {
         mutableIntStateOf(
@@ -40,14 +36,17 @@ fun rememberGeneralMinSound(mService: XposedService): MutableIntState {
 }
 
 @Composable
-fun rememberAppSpecificTimeout(mService: XposedService, packageName: String): MutableState<Int?> {
-    val context = LocalContext.current
-    val prefs = mService.getRemotePreferences(SettingsStore.PREFS_NAME)
-    val state = remember { mutableStateOf(SettingsStore.getAppMinSoundTimeout(mService, packageName)) }
+fun rememberAppSpecificTimeout(settingsStore: SettingsStore, packageName: String): MutableState<Int?> {
+    val prefs = remember(settingsStore) {
+        settingsStore.getPrefs()
+    }
+    val state = remember(settingsStore, packageName) {
+        mutableStateOf(settingsStore.getAppMinSoundTimeout(packageName))
+    }
     DisposableEffect(packageName) {
         val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, changedKey ->
             if (changedKey == SettingsStore.appKey(packageName)) {
-                state.value = SettingsStore.getAppMinSoundTimeout(mService, packageName)
+                state.value = settingsStore.getAppMinSoundTimeout(packageName)
             }
         }
         prefs.registerOnSharedPreferenceChangeListener(listener)
