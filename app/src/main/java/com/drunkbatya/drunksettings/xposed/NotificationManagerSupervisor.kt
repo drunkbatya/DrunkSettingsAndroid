@@ -1,11 +1,16 @@
 package com.drunkbatya.drunksettings.xposed
 
+import android.content.Context
 import android.content.SharedPreferences
+import android.media.AudioManager
+import android.media.AudioPlaybackConfiguration
+import android.os.Build
 import android.os.SystemClock
 import io.github.libxposed.api.XposedInterface
 import io.github.libxposed.api.XposedModule
 import io.github.libxposed.api.XposedModuleInterface
 import java.lang.reflect.Method
+import java.util.concurrent.atomic.AtomicReference
 import java.util.concurrent.ConcurrentHashMap
 
 class NotificationManagerSupervisor(
@@ -13,6 +18,7 @@ class NotificationManagerSupervisor(
     param: XposedModuleInterface.ModuleLoadedParam,
 ) : XposedModule(base, param) {
     private val lastSoundByPackage = ConcurrentHashMap<String, Long>()
+    private val systemContextRef = AtomicReference<Context?>()
 
     private lateinit var prefs: SharedPreferences
 
@@ -71,6 +77,27 @@ class NotificationManagerSupervisor(
         }
     }
 
+    private fun isMusicPlaying(): Boolean {
+        val context = systemContextRef.get() ?: return false
+        val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
+            ?: return false
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            audioManager.activePlaybackConfigurations.any { config ->
+                isPlaybackStarted(config)
+            }
+        } else {
+            audioManager.isMusicActive
+        }
+    }
+
+    private fun isPlaybackStarted(config: AudioPlaybackConfiguration): Boolean {
+        val state = runCatching {
+            val method = config.javaClass.getMethod("getPlayerState")
+            method.invoke(config) as? Int
+        }.getOrNull()
+        return state == PLAYER_STATE_STARTED
+    }
+
     private fun resolveLimitSeconds(packageName: String): Int {
         val generalValue = prefs.getInt(
             "general_min_notification_sound_timeout",
@@ -116,6 +143,7 @@ class NotificationManagerSupervisor(
     }
 
     internal fun onSoundBefore(callback: XposedInterface.BeforeHookCallback) {
+        updateSystemContext(callback.thisObject)
         val method = callback.member as? Method ?: return
         if (method.returnType != Boolean::class.javaPrimitiveType &&
             method.returnType != java.lang.Boolean::class.java
@@ -131,10 +159,23 @@ class NotificationManagerSupervisor(
         }
         lastSoundByPackage[packageName] = SystemClock.elapsedRealtime()
     }
+
+    private fun updateSystemContext(helper: Any?) {
+        if (helper == null || systemContextRef.get() != null) {
+            return
+        }
+        val context = runCatching {
+            helper.javaClass.getDeclaredField("mContext").apply {
+                isAccessible = true
+            }.get(helper) as? Context
+        }.getOrNull()
+        if (context != null) {
+            systemContextRef.compareAndSet(null, context)
+        }
+    }
     companion object {
         private const val TAG = "DrunkSettings: "
+        private const val PLAYER_STATE_STARTED = 2
     }
 }
-
-
 
