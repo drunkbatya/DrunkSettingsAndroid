@@ -16,7 +16,7 @@ import com.drunkbatya.drunksettings.data.SettingsStore
 fun rememberGeneralMinSound(): MutableIntState {
     val context = LocalContext.current
     val prefs = remember {
-        context.getSharedPreferences(SettingsStore.PREFS_NAME, Context.MODE_PRIVATE)
+        SettingsStore.getPrefs(context)
     }
     val state = remember {
         mutableIntStateOf(
@@ -42,7 +42,7 @@ fun rememberGeneralMinSound(): MutableIntState {
 fun rememberAppSpecificTimeout(packageName: String): MutableState<Int?> {
     val context = LocalContext.current
     val prefs = remember {
-        context.getSharedPreferences(SettingsStore.PREFS_NAME, Context.MODE_PRIVATE)
+        SettingsStore.getPrefs(context)
     }
     val state = remember { mutableStateOf(SettingsStore.getAppMinSoundTimeout(context, packageName)) }
     DisposableEffect(packageName) {

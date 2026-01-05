@@ -2,5 +2,9 @@
 <project version="4">
   <component name="VcsDirectoryMappings">
     <mapping directory="$PROJECT_DIR$" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/libxposed/api" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/libxposed/biometric-bypass" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/libxposed/example" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/libxposed/service" vcs="Git" />
   </component>
 </project>

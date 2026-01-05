@@ -16,9 +16,14 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
-        maven {
-            url = uri("https://api.xposed.info/")
+        mavenLocal {
+            content {
+                includeGroup("io.github.libxposed")
+            }
         }
+    }
+    versionCatalogs {
+        create("libs")
     }
 }
 
