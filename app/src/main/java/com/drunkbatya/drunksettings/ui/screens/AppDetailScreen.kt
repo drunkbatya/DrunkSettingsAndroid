@@ -4,6 +4,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Timer
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import com.drunkbatya.drunksettings.ui.components.SettingsIcon
 import com.drunkbatya.drunksettings.ui.components.SettingsListItem
 import com.drunkbatya.drunksettings.ui.components.SettingsScaffold
@@ -15,10 +19,10 @@ import com.drunkbatya.drunksettings.ui.model.timeoutLabel
 fun AppDetailScreen(
     appLabel: String,
     appPackage: String,
-    onBack: () -> Unit,
-    onOpenMinSound: () -> Unit,
+    onBack: () -> Unit
 ) {
     val settingsStore = LocalSettingsStore.current
+    var showMinSoundDialog by remember { mutableStateOf(false) }
     val currentSeconds = settingsStore.getAppMinSoundTimeout(appPackage)
     SettingsScaffold(title = appLabel, onBack = onBack) { padding ->
         LazyColumn(contentPadding = padding) {
@@ -32,9 +36,16 @@ fun AppDetailScreen(
                             contentDescription = null
                         )
                     },
-                    onClick = onOpenMinSound
+                    onClick = { showMinSoundDialog = true }
                 )
             }
         }
+    }
+
+    if (showMinSoundDialog) {
+        AppMinSoundScreen(
+            packageName = appPackage,
+            onBack = { showMinSoundDialog = false }
+        )
     }
 }
