@@ -7,12 +7,17 @@ object ModuleBridge {
     var moduleInstance: NotificationManagerSupervisor? = null
 
     @JvmStatic
-    fun onSoundVibrationBefore(callback: XposedInterface.BeforeHookCallback) {
+    fun onSoundBefore(callback: XposedInterface.BeforeHookCallback) {
         moduleInstance?.onSoundBefore(callback)
     }
 
     @JvmStatic
+    fun onVibrationBefore(callback: XposedInterface.BeforeHookCallback) {
+        moduleInstance?.onVibrationBefore(callback)
+    }
+
+    @JvmStatic
     fun onBlinkBefore(callback: XposedInterface.BeforeHookCallback) {
-        moduleInstance?.onSoundBefore(callback)
+        moduleInstance?.onBlinkBefore(callback)
     }
 }

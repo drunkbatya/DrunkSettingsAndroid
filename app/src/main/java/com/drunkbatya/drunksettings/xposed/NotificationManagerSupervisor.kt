@@ -3,8 +3,6 @@ package com.drunkbatya.drunksettings.xposed
 import android.content.Context
 import android.content.SharedPreferences
 import android.media.AudioManager
-import android.media.AudioPlaybackConfiguration
-import android.os.Build
 import android.os.SystemClock
 import io.github.libxposed.api.XposedInterface
 import io.github.libxposed.api.XposedModule
@@ -41,8 +39,8 @@ class NotificationManagerSupervisor(
             return
         }
         //hookTargetMethod(attentionClass, "buzzBeepBlinkLocked", BuzzBeepBlinkHooker::class.java)
-        hookTargetMethod(attentionClass, "playSound", SoundVibrationHooker::class.java)
-        hookTargetMethod(attentionClass, "playVibration", SoundVibrationHooker::class.java)
+        hookTargetMethod(attentionClass, "playSound", SoundHooker::class.java)
+        hookTargetMethod(attentionClass, "playVibration", VibrationHooker::class.java)
         hookTargetMethod(attentionClass, "canShowLightsLocked", BlinkHooker::class.java)
         log(TAG + "hooks installed for ${attentionClass.name}")
     }
@@ -81,21 +79,7 @@ class NotificationManagerSupervisor(
         val context = systemContextRef.get() ?: return false
         val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
             ?: return false
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            audioManager.activePlaybackConfigurations.any { config ->
-                isPlaybackStarted(config)
-            }
-        } else {
-            audioManager.isMusicActive
-        }
-    }
-
-    private fun isPlaybackStarted(config: AudioPlaybackConfiguration): Boolean {
-        val state = runCatching {
-            val method = config.javaClass.getMethod("getPlayerState")
-            method.invoke(config) as? Int
-        }.getOrNull()
-        return state == PLAYER_STATE_STARTED
+        return audioManager.isMusicActive
     }
 
     private fun resolveLimitSeconds(packageName: String): Int {
@@ -107,6 +91,10 @@ class NotificationManagerSupervisor(
         val appValue = prefs.getInt(appKey, generalValue)
         //log(TAG + "prefs for $packageName appKey=$appKey appValue=$appValue generalValue=$generalValue")
         return appValue
+    }
+
+    private fun shouldPreventFadeOutSound(): Boolean {
+        return prefs.getBoolean("general_do_not_fade_out_music", false)
     }
 
     private fun shouldMuteNow(packageName: String): Boolean {
@@ -148,17 +136,63 @@ class NotificationManagerSupervisor(
         if (method.returnType != Boolean::class.javaPrimitiveType &&
             method.returnType != java.lang.Boolean::class.java
         ) {
+            log(TAG + "unknown method: $method")
             return
         }
         val record = findNotificationRecord(callback.args) ?: return
         val packageName = extractPackageName(record) ?: return
         if (shouldMuteNow(packageName)) {
-            //log(TAG + "muting notification for $packageName")
+            log(TAG + "muting sound for $packageName, reason: rateLimit")
             callback.returnAndSkip(false)
             return
         }
-        if (isMusicPlaying()) {
-            log(TAG + "sound is playing, but alert will mute it")
+        if (isMusicPlaying() && shouldPreventFadeOutSound()) {
+            log(TAG + "muting sound for $packageName, reason: musicPlaying")
+            callback.returnAndSkip(false)
+            return
+        }
+        lastSoundByPackage[packageName] = SystemClock.elapsedRealtime()
+    }
+
+    internal fun onVibrationBefore(callback: XposedInterface.BeforeHookCallback) {
+        updateSystemContext(callback.thisObject)
+        val method = callback.member as? Method ?: return
+        if (method.returnType != Boolean::class.javaPrimitiveType &&
+            method.returnType != java.lang.Boolean::class.java
+        ) {
+            log(TAG + "unknown method: $method")
+            return
+        }
+        val record = findNotificationRecord(callback.args) ?: return
+        val packageName = extractPackageName(record) ?: return
+        if (shouldMuteNow(packageName)) {
+            log(TAG + "muting vibration for $packageName, reason: rateLimit")
+            callback.returnAndSkip(false)
+            return
+        }
+        lastSoundByPackage[packageName] = SystemClock.elapsedRealtime()
+    }
+
+    internal fun onBlinkBefore(callback: XposedInterface.BeforeHookCallback) {
+        updateSystemContext(callback.thisObject)
+        val method = callback.member as? Method ?: return
+        if (method.returnType != Boolean::class.javaPrimitiveType &&
+            method.returnType != java.lang.Boolean::class.java
+        ) {
+            log(TAG + "unknown method: $method")
+            return
+        }
+        val record = findNotificationRecord(callback.args) ?: return
+        val packageName = extractPackageName(record) ?: return
+        if (shouldMuteNow(packageName)) {
+            log(TAG + "muting blink for $packageName, reason: rateLimit")
+            callback.returnAndSkip(false)
+            return
+        }
+        if (isMusicPlaying() && shouldPreventFadeOutSound()) {
+            log(TAG + "muting blink for $packageName, reason: musicPlaying")
+            callback.returnAndSkip(false)
+            return
         }
         lastSoundByPackage[packageName] = SystemClock.elapsedRealtime()
     }
@@ -178,7 +212,6 @@ class NotificationManagerSupervisor(
     }
     companion object {
         private const val TAG = "DrunkSettings: "
-        private const val PLAYER_STATE_STARTED = 2
     }
 }
 

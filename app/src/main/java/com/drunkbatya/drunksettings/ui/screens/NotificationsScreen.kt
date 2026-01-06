@@ -20,7 +20,7 @@ fun NotificationsScreen(
             item {
                 SettingsListItem(
                     title = "General",
-                    summary = "Default sound timeout",
+                    summary = "Base settings",
                     leadingContent = {
                         SettingsIcon(
                             icon = Icons.Rounded.Tune,
@@ -33,7 +33,7 @@ fun NotificationsScreen(
             item {
                 SettingsListItem(
                     title = "App notifications",
-                    summary = "Set limits for each app",
+                    summary = "Per-app settings",
                     leadingContent = {
                         SettingsIcon(
                             icon = Icons.Rounded.Apps,

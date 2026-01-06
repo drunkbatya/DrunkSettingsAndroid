@@ -6,10 +6,10 @@ import io.github.libxposed.api.annotations.BeforeInvocation;
 import io.github.libxposed.api.annotations.XposedHooker;
 
 @XposedHooker
-public final class SoundVibrationHooker implements XposedInterface.Hooker {
+public final class SoundHooker implements XposedInterface.Hooker {
     @BeforeInvocation
     public static void before(XposedInterface.BeforeHookCallback callback) {
-        ModuleBridge.onSoundVibrationBefore(callback);
+        ModuleBridge.onSoundBefore(callback);
     }
 
     //@AfterInvocation

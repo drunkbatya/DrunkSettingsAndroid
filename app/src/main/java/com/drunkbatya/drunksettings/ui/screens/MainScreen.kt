@@ -16,7 +16,7 @@ fun MainScreen(
     onOpenDebug: () -> Unit,
     onOpenAbout: () -> Unit
 ) {
-    SettingsScaffold(title = "Settings") { padding ->
+    SettingsScaffold(title = "DrunkSettings") { padding ->
         LazyColumn(contentPadding = padding) {
             item {
                 SettingsListItem(
@@ -34,7 +34,7 @@ fun MainScreen(
             item {
                 SettingsListItem(
                     title = "Debug",
-                    summary = "Tools for testing and storage",
+                    summary = "To test something",
                     leadingContent = {
                         SettingsIcon(
                             icon = Icons.Rounded.BugReport,

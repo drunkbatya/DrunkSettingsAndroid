@@ -10,6 +10,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.BugReport
 import androidx.compose.material.icons.rounded.DeleteForever
 import androidx.compose.material.icons.rounded.NotificationsActive
+import androidx.compose.material.icons.rounded.Speed
 import androidx.compose.material.icons.automirrored.rounded.ListAlt
 import androidx.compose.material.icons.automirrored.rounded.VolumeUp
 import androidx.compose.material3.AlertDialog
@@ -32,7 +33,8 @@ import com.drunkbatya.drunksettings.ui.util.sendTestNotification
 fun DebugScreen(
     onBack: () -> Unit,
     onOpenNotifications: () -> Unit,
-    onOpenApp: () -> Unit
+    onOpenApp: () -> Unit,
+    onOpenSystemFlags: () -> Unit
 ) {
     SettingsScaffold(title = "Debug", onBack = onBack) { padding ->
         LazyColumn(contentPadding = padding) {
@@ -47,6 +49,19 @@ fun DebugScreen(
                         )
                     },
                     onClick = onOpenNotifications
+                )
+            }
+            item {
+                SettingsListItem(
+                    title = "System flags",
+                    summary = "Live system state",
+                    leadingContent = {
+                        SettingsIcon(
+                            icon = Icons.Rounded.Speed,
+                            contentDescription = null
+                        )
+                    },
+                    onClick = onOpenSystemFlags
                 )
             }
             item {

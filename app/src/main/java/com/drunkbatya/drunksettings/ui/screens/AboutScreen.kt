@@ -1,7 +1,6 @@
 package com.drunkbatya.drunksettings.ui.screens
 
 import android.content.Intent
-import android.net.Uri
 import android.os.Build
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -20,6 +19,7 @@ import androidx.compose.ui.unit.dp
 import com.drunkbatya.drunksettings.ui.components.SettingsIcon
 import com.drunkbatya.drunksettings.ui.components.SettingsListItem
 import com.drunkbatya.drunksettings.ui.components.SettingsScaffold
+import androidx.core.net.toUri
 
 @Composable
 fun AboutScreen(
@@ -33,7 +33,6 @@ fun AboutScreen(
                 android.content.pm.PackageManager.PackageInfoFlags.of(0)
             ).versionName
         } else {
-            @Suppress("DEPRECATION")
             context.packageManager.getPackageInfo(context.packageName, 0).versionName
         }
     }.getOrNull() ?: "Unknown"
@@ -69,7 +68,7 @@ fun AboutScreen(
                     onClick = {
                         val intent = Intent(
                             Intent.ACTION_VIEW,
-                            Uri.parse("https://github.com/drunkbatya/DrunkSettingsAndroid")
+                            "https://github.com/drunkbatya/DrunkSettingsAndroid".toUri()
                         ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                         context.startActivity(intent)
                     }

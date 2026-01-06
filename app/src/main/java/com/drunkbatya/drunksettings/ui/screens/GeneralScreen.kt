@@ -3,6 +3,8 @@ package com.drunkbatya.drunksettings.ui.screens
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Timer
+import androidx.compose.material.icons.automirrored.rounded.VolumeOff
+import androidx.compose.material3.Checkbox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -22,6 +24,9 @@ fun GeneralScreen(
     val settingsStore = LocalSettingsStore.current
     var showMinSoundDialog by remember { mutableStateOf(false) }
     val generalSeconds = settingsStore.getGeneralMinSoundTimeout()
+    var doNotFadeOut by remember {
+        mutableStateOf(settingsStore.getDoNotFadeOutMusic())
+    }
     SettingsScaffold(title = "General", onBack = onBack) { padding ->
         LazyColumn(contentPadding = padding) {
             item {
@@ -35,6 +40,28 @@ fun GeneralScreen(
                         )
                     },
                     onClick = { showMinSoundDialog = true }
+                )
+            }
+            item {
+                SettingsListItem(
+                    title = "Do not fade out",
+                    summary = "Music when notificaion occur",
+                    leadingContent = {
+                        SettingsIcon(
+                            icon = Icons.AutoMirrored.Rounded.VolumeOff,
+                            contentDescription = null
+                        )
+                    },
+                    trailingContent = {
+                        Checkbox(
+                            checked = doNotFadeOut,
+                            onCheckedChange = null
+                        )
+                    },
+                    onClick = {
+                        doNotFadeOut = !doNotFadeOut
+                        settingsStore.setDoNotFadeOutMusic(doNotFadeOut)
+                    }
                 )
             }
         }

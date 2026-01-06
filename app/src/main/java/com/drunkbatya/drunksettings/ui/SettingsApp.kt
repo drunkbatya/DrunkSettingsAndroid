@@ -11,6 +11,7 @@ import com.drunkbatya.drunksettings.ui.screens.AboutScreen
 import com.drunkbatya.drunksettings.ui.screens.DebugAppScreen
 import com.drunkbatya.drunksettings.ui.screens.DebugNotificationsScreen
 import com.drunkbatya.drunksettings.ui.screens.DebugScreen
+import com.drunkbatya.drunksettings.ui.screens.DebugSystemFlagsScreen
 import com.drunkbatya.drunksettings.ui.screens.GeneralScreen
 import com.drunkbatya.drunksettings.ui.screens.MainScreen
 import com.drunkbatya.drunksettings.ui.screens.NotificationsScreen
@@ -43,7 +44,8 @@ fun SettingsApp() {
         Screen.Debug -> DebugScreen(
             onBack = { onBack.value.invoke() },
             onOpenNotifications = { backStack.add(Screen.DebugNotifications) },
-            onOpenApp = { backStack.add(Screen.DebugApp) }
+            onOpenApp = { backStack.add(Screen.DebugApp) },
+            onOpenSystemFlags = { backStack.add(Screen.DebugSystemFlags) }
         )
         Screen.General -> GeneralScreen(
             onBack = { onBack.value.invoke() }
@@ -55,6 +57,9 @@ fun SettingsApp() {
             }
         )
         Screen.DebugNotifications -> DebugNotificationsScreen(
+            onBack = { onBack.value.invoke() }
+        )
+        Screen.DebugSystemFlags -> DebugSystemFlagsScreen(
             onBack = { onBack.value.invoke() }
         )
         Screen.DebugApp -> DebugAppScreen(
@@ -79,6 +84,7 @@ sealed interface Screen {
     data object Notifications : Screen
     data object Debug : Screen
     data object DebugNotifications : Screen
+    data object DebugSystemFlags : Screen
     data object DebugApp : Screen
     data object About : Screen
     data object General : Screen

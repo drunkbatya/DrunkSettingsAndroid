@@ -12,6 +12,7 @@ class SettingsStore(private val service: XposedService) {
     companion object {
         const val PREFS_NAME = "NotificationManagerSupervisor"
         const val KEY_GENERAL_MIN_SOUND = "general_min_notification_sound_timeout"
+        const val KEY_GENERAL_DO_NOT_FADE_OUT = "general_do_not_fade_out_music"
         const val DEFAULT_MIN_SOUND = 0
 
         fun appKey(packageName: String): String {
@@ -28,8 +29,16 @@ class SettingsStore(private val service: XposedService) {
         return prefs.getInt(KEY_GENERAL_MIN_SOUND, DEFAULT_MIN_SOUND)
     }
 
+    fun getDoNotFadeOutMusic(): Boolean {
+        return prefs.getBoolean(KEY_GENERAL_DO_NOT_FADE_OUT, false)
+    }
+
     fun setGeneralMinSoundTimeout(seconds: Int) {
         prefs.edit(commit = true) { putInt(KEY_GENERAL_MIN_SOUND, seconds) }
+    }
+
+    fun setDoNotFadeOutMusic(enabled: Boolean) {
+        prefs.edit(commit = true) { putBoolean(KEY_GENERAL_DO_NOT_FADE_OUT, enabled) }
     }
 
     fun setAppMinSoundTimeout(packageName: String, seconds: Int) {
