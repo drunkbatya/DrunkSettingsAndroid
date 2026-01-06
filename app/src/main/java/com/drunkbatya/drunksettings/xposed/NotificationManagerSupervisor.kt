@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import android.media.AudioManager
 import android.os.SystemClock
+import android.os.VibrationEffect
 import io.github.libxposed.api.XposedInterface
 import io.github.libxposed.api.XposedModule
 import io.github.libxposed.api.XposedModuleInterface
@@ -147,8 +148,18 @@ class NotificationManagerSupervisor(
             return
         }
         if (isMusicPlaying() && shouldPreventFadeOutSound()) {
-            log(TAG + "muting sound for $packageName, reason: musicPlaying")
-            callback.returnAndSkip(false)
+            log(TAG + "replacing sound for $packageName to vibration, reason: musicPlaying")
+            val helper = callback.thisObject ?: return
+            val vibration = record.javaClass.getMethod("getVibration").invoke(record) as? VibrationEffect
+            if (vibration == null) {
+                val method = helper.javaClass.declaredMethods.firstOrNull {
+                    it.name == "playVibration" && it.parameterTypes.size == 3
+                }?: return
+                callback.returnAndSkip(false)
+                method.invoke(helper, record, VibrationEffect.createOneShot(500, 255), false)
+            } else {
+                callback.returnAndSkip(false)
+            }
             return
         }
         lastSoundByPackage[packageName] = SystemClock.elapsedRealtime()
