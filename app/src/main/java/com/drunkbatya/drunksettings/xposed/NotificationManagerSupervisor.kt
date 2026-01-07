@@ -8,6 +8,7 @@ import com.drunkbatya.drunksettings.xposed.hookers.BlinkHooker
 import com.drunkbatya.drunksettings.xposed.hookers.SoundHooker
 import com.drunkbatya.drunksettings.xposed.hookers.VibrationHooker
 import com.drunkbatya.drunksettings.xposed.helpers.XposedHelpers
+import com.drunkbatya.drunksettings.xposed.preferences.ModulePreferences
 import io.github.libxposed.api.XposedInterface
 import io.github.libxposed.api.XposedModule
 import io.github.libxposed.api.XposedModuleInterface
@@ -23,6 +24,12 @@ class NotificationManagerSupervisor(
     private val systemContextRef = AtomicReference<Context?>()
 
     private lateinit var prefs: SharedPreferences
+    private val modulePreferences = ModulePreferences()
+    private val prefsListener = SharedPreferences.OnSharedPreferenceChangeListener { shared, key ->
+        if (shared != null) {
+            modulePreferences.onPreferenceChanged(shared, key)
+        }
+    }
 
     init {
         ModuleBridge.moduleInstance = this
@@ -31,7 +38,9 @@ class NotificationManagerSupervisor(
 
     override fun onSystemServerLoaded(param: XposedModuleInterface.SystemServerLoadedParam) {
         log(TAG + "onSystemServerLoaded")
-        prefs = getRemotePreferences("NotificationManagerSupervisor")
+        prefs = getRemotePreferences(ModulePreferences.PREFS_NAME)
+        modulePreferences.syncAll(prefs)
+        prefs.registerOnSharedPreferenceChangeListener(prefsListener)
         installHooks(param.classLoader)
     }
 
@@ -50,25 +59,12 @@ class NotificationManagerSupervisor(
         log(TAG + "hooks installed for ${attentionClass.name}")
     }
 
-
-
-    private fun resolveLimitSeconds(packageName: String): Int {
-        val generalValue = prefs.getInt(
-            "general_min_notification_sound_timeout",
-            0
-        )
-        val appKey = "min_notification_sound_timeout_$packageName"
-        val appValue = prefs.getInt(appKey, generalValue)
-        //log(TAG + "prefs for $packageName appKey=$appKey appValue=$appValue generalValue=$generalValue")
-        return appValue
-    }
-
     private fun shouldPreventFadeOutSound(): Boolean {
-        return prefs.getBoolean("general_do_not_fade_out_music", false)
+        return modulePreferences.shouldPreventFadeOutSound()
     }
 
     private fun shouldMuteNow(packageName: String): Boolean {
-        val limitSeconds = resolveLimitSeconds(packageName)
+        val limitSeconds = modulePreferences.resolveLimitSeconds(packageName)
         if (limitSeconds <= 0) {
             return false
         }
