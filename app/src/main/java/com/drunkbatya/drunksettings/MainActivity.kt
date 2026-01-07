@@ -1,6 +1,7 @@
 package com.drunkbatya.drunksettings
 
 import android.os.Bundle
+import android.os.Process
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -31,5 +32,13 @@ class MainActivity : ComponentActivity() {
             }
         })
 
+    }
+
+    override fun onStop() {
+        super.onStop()
+        if (!isChangingConfigurations) {
+            // Kill the process once the app goes to background to prevent xposed service wait loop
+            Process.killProcess(Process.myPid())
+        }
     }
 }
