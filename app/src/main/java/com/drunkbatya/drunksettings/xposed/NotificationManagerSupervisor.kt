@@ -59,10 +59,6 @@ class NotificationManagerSupervisor(
         log(TAG + "hooks installed for ${attentionClass.name}")
     }
 
-    private fun shouldPreventFadeOutSound(): Boolean {
-        return modulePreferences.shouldPreventFadeOutSound()
-    }
-
     private fun shouldMuteNow(packageName: String): Boolean {
         val limitSeconds = modulePreferences.resolveLimitSeconds(packageName)
         if (limitSeconds <= 0) {
@@ -90,7 +86,9 @@ class NotificationManagerSupervisor(
             callback.returnAndSkip(false)
             return
         }
-        if (XposedHelpers.isMusicPlaying(systemContextRef.get()) && shouldPreventFadeOutSound()) {
+        if (XposedHelpers.isMusicPlaying(systemContextRef.get())
+                && modulePreferences.shouldPreventFadeOutSound()
+            ) {
             log(TAG + "replacing sound for $packageName to vibration, reason: musicPlaying")
             val helper = callback.thisObject ?: return
             val vibration = record.javaClass.getMethod("getVibration").invoke(record) as? VibrationEffect
@@ -136,6 +134,9 @@ class NotificationManagerSupervisor(
             log(TAG + "unknown method: $method")
             return
         }
+        if (!modulePreferences.shouldMuteBlinkWithSound()) {
+            return
+        }
         val record = XposedHelpers.findNotificationRecord(callback.args) ?: return
         val packageName = XposedHelpers.extractPackageName(record) ?: return
         if (shouldMuteNow(packageName)) {
@@ -143,7 +144,9 @@ class NotificationManagerSupervisor(
             callback.returnAndSkip(false)
             return
         }
-        if (XposedHelpers.isMusicPlaying(systemContextRef.get()) && shouldPreventFadeOutSound()) {
+        if (XposedHelpers.isMusicPlaying(systemContextRef.get())
+            && modulePreferences.shouldPreventFadeOutSound())
+        {
             log(TAG + "muting blink for $packageName, reason: musicPlaying")
             callback.returnAndSkip(false)
             return
@@ -164,7 +167,14 @@ class NotificationManagerSupervisor(
             systemContextRef.compareAndSet(null, context)
         }
     }
+
+    fun logVerbose(message: String) {
+        if (modulePreferences.isVerboseLogging()) {
+            log(message)
+        }
+    }
     companion object {
         private const val TAG = "DrunkSettings: "
     }
+
 }

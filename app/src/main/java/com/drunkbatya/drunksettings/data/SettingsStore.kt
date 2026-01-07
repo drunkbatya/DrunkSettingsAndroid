@@ -13,6 +13,8 @@ class SettingsStore(private val service: XposedService) {
         const val PREFS_NAME = "NotificationManagerSupervisor"
         const val KEY_GENERAL_MIN_SOUND = "general_min_notification_sound_timeout"
         const val KEY_GENERAL_DO_NOT_FADE_OUT = "general_do_not_fade_out_music"
+        const val KEY_DEBUG_ALSO_MUTE_BLINK = "debug_also_mute_blink"
+        const val KEY_DEBUG_VERBOSE_LOGGING = "debug_verbose_logging"
         const val DEFAULT_MIN_SOUND = 0
 
         fun appKey(packageName: String): String {
@@ -33,12 +35,28 @@ class SettingsStore(private val service: XposedService) {
         return prefs.getBoolean(KEY_GENERAL_DO_NOT_FADE_OUT, false)
     }
 
+    fun getDebugAlsoMuteBlink(): Boolean {
+        return prefs.getBoolean(KEY_DEBUG_ALSO_MUTE_BLINK, false)
+    }
+
+    fun getDebugVerboseLogging(): Boolean {
+        return prefs.getBoolean(KEY_DEBUG_VERBOSE_LOGGING, false)
+    }
+
     fun setGeneralMinSoundTimeout(seconds: Int) {
         prefs.edit(commit = true) { putInt(KEY_GENERAL_MIN_SOUND, seconds) }
     }
 
     fun setDoNotFadeOutMusic(enabled: Boolean) {
         prefs.edit(commit = true) { putBoolean(KEY_GENERAL_DO_NOT_FADE_OUT, enabled) }
+    }
+
+    fun setDebugAlsoMuteBlink(enabled: Boolean) {
+        prefs.edit(commit = true) { putBoolean(KEY_DEBUG_ALSO_MUTE_BLINK, enabled) }
+    }
+
+    fun setDebugVerboseLogging(enabled: Boolean) {
+        prefs.edit(commit = true) { putBoolean(KEY_DEBUG_VERBOSE_LOGGING, enabled) }
     }
 
     fun setAppMinSoundTimeout(packageName: String, seconds: Int) {

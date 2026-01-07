@@ -9,11 +9,13 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.BugReport
 import androidx.compose.material.icons.rounded.DeleteForever
+import androidx.compose.material.icons.rounded.FlashOn
 import androidx.compose.material.icons.rounded.NotificationsActive
 import androidx.compose.material.icons.rounded.Speed
 import androidx.compose.material.icons.automirrored.rounded.ListAlt
 import androidx.compose.material.icons.automirrored.rounded.VolumeUp
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -86,6 +88,8 @@ fun DebugNotificationsScreen(
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
+    val settingsStore = LocalSettingsStore.current
+    var alsoMuteBlink by remember { mutableStateOf(settingsStore.getDebugAlsoMuteBlink()) }
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { granted ->
@@ -121,6 +125,28 @@ fun DebugNotificationsScreen(
                     onClick = onTestNotification
                 )
             }
+            item {
+                SettingsListItem(
+                    title = "Mute blink",
+                    summary = "Together with sound/vibro",
+                    leadingContent = {
+                        SettingsIcon(
+                            icon = Icons.Rounded.FlashOn,
+                            contentDescription = null
+                        )
+                    },
+                    trailingContent = {
+                        Checkbox(
+                            checked = alsoMuteBlink,
+                            onCheckedChange = null
+                        )
+                    },
+                    onClick = {
+                        alsoMuteBlink = !alsoMuteBlink
+                        settingsStore.setDebugAlsoMuteBlink(alsoMuteBlink)
+                    }
+                )
+            }
         }
     }
 }
@@ -131,9 +157,32 @@ fun DebugAppScreen(
 ) {
     val settingsStore = LocalSettingsStore.current
     var showDialog by remember { mutableStateOf(false) }
+    var verboseLogging by remember { mutableStateOf(settingsStore.getDebugVerboseLogging()) }
 
     SettingsScaffold(title = "App", onBack = onBack) { padding ->
         LazyColumn(contentPadding = padding) {
+            item {
+                SettingsListItem(
+                    title = "Verbose logging",
+                    summary = "More logs from xposed module",
+                    leadingContent = {
+                        SettingsIcon(
+                            icon = Icons.Rounded.BugReport,
+                            contentDescription = null
+                        )
+                    },
+                    trailingContent = {
+                        Checkbox(
+                            checked = verboseLogging,
+                            onCheckedChange = null
+                        )
+                    },
+                    onClick = {
+                        verboseLogging = !verboseLogging
+                        settingsStore.setDebugVerboseLogging(verboseLogging)
+                    }
+                )
+            }
             item {
                 SettingsListItem(
                     title = "Wipe shared settings",
