@@ -5,6 +5,9 @@ import android.content.SharedPreferences
 import android.media.AudioManager
 import android.os.SystemClock
 import android.os.VibrationEffect
+import com.drunkbatya.drunksettings.xposed.hookers.BlinkHooker
+import com.drunkbatya.drunksettings.xposed.hookers.SoundHooker
+import com.drunkbatya.drunksettings.xposed.hookers.VibrationHooker
 import io.github.libxposed.api.XposedInterface
 import io.github.libxposed.api.XposedModule
 import io.github.libxposed.api.XposedModuleInterface
@@ -32,21 +35,7 @@ class NotificationManagerSupervisor(
         installHooks(param.classLoader)
     }
 
-    private fun installHooks(classLoader: ClassLoader) {
-        val className = "com.android.server.notification.NotificationAttentionHelper"
-        val attentionClass = findClass(className, classLoader)
-        if (attentionClass == null) {
-            log(TAG + "failed to found class: $className")
-            return
-        }
-        //hookTargetMethod(attentionClass, "buzzBeepBlinkLocked", BuzzBeepBlinkHooker::class.java)
-        hookTargetMethod(attentionClass, "playSound", SoundHooker::class.java)
-        hookTargetMethod(attentionClass, "playVibration", VibrationHooker::class.java)
-        hookTargetMethod(attentionClass, "canShowLightsLocked", BlinkHooker::class.java)
-        log(TAG + "hooks installed for ${attentionClass.name}")
-    }
-
-    private fun hookTargetMethod(
+    fun hookTargetMethod(
         targetClass: Class<*>,
         targetMethod: String,
         hooker: Class<out XposedInterface.Hooker>
@@ -75,6 +64,22 @@ class NotificationManagerSupervisor(
             log(TAG + "unexpected error while hooking $targetMethod in ${targetClass.name}: ${e.message}")
         }
     }
+
+    private fun installHooks(classLoader: ClassLoader) {
+        val className = "com.android.server.notification.NotificationAttentionHelper"
+        val attentionClass = findClass(className, classLoader)
+        if (attentionClass == null) {
+            log(TAG + "failed to found class: $className")
+            return
+        }
+        //hookTargetMethod(attentionClass, "buzzBeepBlinkLocked", BuzzBeepBlinkHooker::class.java)
+        hookTargetMethod(attentionClass, "playSound", SoundHooker::class.java)
+        hookTargetMethod(attentionClass, "playVibration", VibrationHooker::class.java)
+        hookTargetMethod(attentionClass, "canShowLightsLocked", BlinkHooker::class.java)
+        log(TAG + "hooks installed for ${attentionClass.name}")
+    }
+
+
 
     private fun isMusicPlaying(): Boolean {
         val context = systemContextRef.get() ?: return false
@@ -222,7 +227,7 @@ class NotificationManagerSupervisor(
         }
     }
     companion object {
-        private const val TAG = "DrunkSettings: "
+        const val TAG = "DrunkSettings: "
     }
 }
 

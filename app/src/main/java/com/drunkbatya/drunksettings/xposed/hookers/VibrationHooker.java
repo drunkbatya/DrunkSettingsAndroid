@@ -1,4 +1,6 @@
-package com.drunkbatya.drunksettings.xposed;
+package com.drunkbatya.drunksettings.xposed.hookers;
+
+import com.drunkbatya.drunksettings.xposed.ModuleBridge;
 
 import io.github.libxposed.api.XposedInterface;
 import io.github.libxposed.api.annotations.BeforeInvocation;

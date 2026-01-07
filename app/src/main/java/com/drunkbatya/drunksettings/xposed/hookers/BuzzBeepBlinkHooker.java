@@ -1,4 +1,4 @@
-package com.drunkbatya.drunksettings.xposed;
+package com.drunkbatya.drunksettings.xposed.hookers;
 
 import io.github.libxposed.api.XposedInterface;
 import io.github.libxposed.api.annotations.XposedHooker;
