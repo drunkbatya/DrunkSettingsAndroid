@@ -5,6 +5,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.BugReport
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Notifications
+import androidx.compose.material.icons.rounded.Shield
 import androidx.compose.runtime.Composable
 import com.drunkbatya.drunksettings.ui.components.SettingsIcon
 import com.drunkbatya.drunksettings.ui.components.SettingsListItem
@@ -13,6 +14,7 @@ import com.drunkbatya.drunksettings.ui.components.SettingsScaffold
 @Composable
 fun MainScreen(
     onOpenNotifications: () -> Unit,
+    onOpenPrivacy: () -> Unit,
     onOpenDebug: () -> Unit,
     onOpenAbout: () -> Unit
 ) {
@@ -29,6 +31,19 @@ fun MainScreen(
                         )
                     },
                     onClick = onOpenNotifications
+                )
+            }
+            item {
+                SettingsListItem(
+                    title = "Privacy",
+                    summary = "Headset button, notification & screenshot detection",
+                    leadingContent = {
+                        SettingsIcon(
+                            icon = Icons.Rounded.Shield,
+                            contentDescription = null
+                        )
+                    },
+                    onClick = onOpenPrivacy
                 )
             }
             item {

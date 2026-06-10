@@ -15,6 +15,7 @@ import com.drunkbatya.drunksettings.ui.screens.DebugSystemFlagsScreen
 import com.drunkbatya.drunksettings.ui.screens.GeneralScreen
 import com.drunkbatya.drunksettings.ui.screens.MainScreen
 import com.drunkbatya.drunksettings.ui.screens.NotificationsScreen
+import com.drunkbatya.drunksettings.ui.screens.PrivacyScreen
 
 @Composable
 fun SettingsApp() {
@@ -33,12 +34,17 @@ fun SettingsApp() {
     when (current) {
         Screen.Main -> MainScreen(
             onOpenNotifications = { backStack.add(Screen.Notifications) },
+            onOpenPrivacy = { backStack.add(Screen.Privacy) },
             onOpenDebug = { backStack.add(Screen.Debug) },
             onOpenAbout = { backStack.add(Screen.About) }
         )
         Screen.Notifications -> NotificationsScreen(
             onBack = { onBack.value.invoke() },
             onOpenGeneral = { backStack.add(Screen.General) },
+            onOpenApps = { backStack.add(Screen.AppNotifications) }
+        )
+        Screen.Privacy -> PrivacyScreen(
+            onBack = { onBack.value.invoke() },
             onOpenApps = { backStack.add(Screen.AppNotifications) }
         )
         Screen.Debug -> DebugScreen(
@@ -88,6 +94,7 @@ sealed interface Screen {
     data object DebugApp : Screen
     data object About : Screen
     data object General : Screen
+    data object Privacy : Screen
     data object AppNotifications : Screen
     data class AppDetail(val packageName: String, val label: String) : Screen
 }

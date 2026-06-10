@@ -1,6 +1,7 @@
 package com.drunkbatya.drunksettings.data
 
 import android.util.Log
+import com.drunkbatya.drunksettings.ui.model.NotifDetectMode
 import io.github.libxposed.service.XposedService
 import org.json.JSONArray
 import org.json.JSONObject
@@ -15,10 +16,24 @@ class SettingsStore(private val service: XposedService) {
         const val KEY_GENERAL_DO_NOT_FADE_OUT = "general_do_not_fade_out_music"
         const val KEY_DEBUG_ALSO_MUTE_BLINK = "debug_also_mute_blink"
         const val KEY_DEBUG_VERBOSE_LOGGING = "debug_verbose_logging"
+        const val KEY_SWALLOW_HEADSET_BUTTON = "swallow_headset_button"
+        const val KEY_NOTIF_DETECT_MODE = "notif_detect_mode"
+        const val KEY_SCREENSHOT_BLOCK = "screenshot_block"
+        const val KEY_CAPTURE_SECURE_LAYERS = "capture_secure_layers"
+        const val NOTIF_DETECT_APP_PREFIX = "notif_detect_mode_"
+        const val SCREENSHOT_BLOCK_APP_PREFIX = "screenshot_block_"
         const val DEFAULT_MIN_SOUND = 0
 
         fun appKey(packageName: String): String {
             return "min_notification_sound_timeout_$packageName"
+        }
+
+        fun notifDetectAppKey(packageName: String): String {
+            return "$NOTIF_DETECT_APP_PREFIX$packageName"
+        }
+
+        fun screenshotBlockAppKey(packageName: String): String {
+            return "$SCREENSHOT_BLOCK_APP_PREFIX$packageName"
         }
     }
 
@@ -65,6 +80,78 @@ class SettingsStore(private val service: XposedService) {
 
     fun clearAppMinSoundTimeout(packageName: String) {
         prefs.edit(commit = true) { remove(appKey(packageName)) }
+    }
+
+    // --- Wired headset button ---
+
+    fun getSwallowHeadsetButton(): Boolean {
+        return prefs.getBoolean(KEY_SWALLOW_HEADSET_BUTTON, false)
+    }
+
+    fun setSwallowHeadsetButton(enabled: Boolean) {
+        prefs.edit(commit = true) { putBoolean(KEY_SWALLOW_HEADSET_BUTTON, enabled) }
+    }
+
+    // --- Notification-status visibility ---
+
+    fun getGeneralNotifDetectMode(): NotifDetectMode {
+        return NotifDetectMode.fromStorage(prefs.getString(KEY_NOTIF_DETECT_MODE, null))
+    }
+
+    fun setGeneralNotifDetectMode(mode: NotifDetectMode) {
+        prefs.edit(commit = true) { putString(KEY_NOTIF_DETECT_MODE, mode.storageValue) }
+    }
+
+    /** Per-app override, or null when the app inherits the global mode. */
+    fun getAppNotifDetectMode(packageName: String): NotifDetectMode? {
+        val key = notifDetectAppKey(packageName)
+        return if (prefs.contains(key)) {
+            NotifDetectMode.fromStorage(prefs.getString(key, null))
+        } else {
+            null
+        }
+    }
+
+    fun setAppNotifDetectMode(packageName: String, mode: NotifDetectMode) {
+        prefs.edit(commit = true) { putString(notifDetectAppKey(packageName), mode.storageValue) }
+    }
+
+    fun clearAppNotifDetectMode(packageName: String) {
+        prefs.edit(commit = true) { remove(notifDetectAppKey(packageName)) }
+    }
+
+    // --- Screenshot detection ---
+
+    fun getGeneralScreenshotBlock(): Boolean {
+        return prefs.getBoolean(KEY_SCREENSHOT_BLOCK, false)
+    }
+
+    fun setGeneralScreenshotBlock(enabled: Boolean) {
+        prefs.edit(commit = true) { putBoolean(KEY_SCREENSHOT_BLOCK, enabled) }
+    }
+
+    /** Per-app override, or null when the app inherits the global setting. */
+    fun getAppScreenshotBlock(packageName: String): Boolean? {
+        val key = screenshotBlockAppKey(packageName)
+        return if (prefs.contains(key)) prefs.getBoolean(key, false) else null
+    }
+
+    fun setAppScreenshotBlock(packageName: String, enabled: Boolean) {
+        prefs.edit(commit = true) { putBoolean(screenshotBlockAppKey(packageName), enabled) }
+    }
+
+    fun clearAppScreenshotBlock(packageName: String) {
+        prefs.edit(commit = true) { remove(screenshotBlockAppKey(packageName)) }
+    }
+
+    // --- Force-allow screenshots (disable FLAG_SECURE) ---
+
+    fun getCaptureSecureLayers(): Boolean {
+        return prefs.getBoolean(KEY_CAPTURE_SECURE_LAYERS, false)
+    }
+
+    fun setCaptureSecureLayers(enabled: Boolean) {
+        prefs.edit(commit = true) { putBoolean(KEY_CAPTURE_SECURE_LAYERS, enabled) }
     }
 
     fun wipeAll() {
