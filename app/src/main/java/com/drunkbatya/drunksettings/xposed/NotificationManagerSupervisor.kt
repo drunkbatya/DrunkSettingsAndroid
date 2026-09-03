@@ -436,6 +436,7 @@ class NotificationManagerSupervisor : XposedModule() {
     }
 
     fun log(message: String) {
+        Log.i(TAG_LOGCAT, message)
         log(Log.INFO, TAG_LOGCAT, message)
     }
 
