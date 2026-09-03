@@ -22,5 +22,3 @@ enum class NotifDetectMode(val storageValue: String, val label: String) {
         }
     }
 }
-
-fun notifDetectLabel(mode: NotifDetectMode): String = mode.label

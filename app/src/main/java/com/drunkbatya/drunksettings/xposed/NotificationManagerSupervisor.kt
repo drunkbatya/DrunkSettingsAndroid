@@ -12,6 +12,7 @@ import android.os.SystemClock
 import android.os.VibrationEffect
 import android.view.KeyEvent
 import com.drunkbatya.drunksettings.ui.model.NotifDetectMode
+import com.drunkbatya.drunksettings.data.SettingsKeys
 import com.drunkbatya.drunksettings.xposed.hookers.AddServiceHooker
 import com.drunkbatya.drunksettings.xposed.hookers.AreNotificationsEnabledHooker
 import com.drunkbatya.drunksettings.xposed.hookers.BlinkHooker
@@ -56,7 +57,7 @@ class NotificationManagerSupervisor(
 
     override fun onSystemServerLoaded(param: XposedModuleInterface.SystemServerLoadedParam) {
         log(TAG + "onSystemServerLoaded")
-        prefs = getRemotePreferences(ModulePreferences.PREFS_NAME)
+        prefs = getRemotePreferences(SettingsKeys.PREFS_NAME)
         modulePreferences.syncAll(prefs)
         prefs.registerOnSharedPreferenceChangeListener(prefsListener)
         installHooks(param.classLoader)
