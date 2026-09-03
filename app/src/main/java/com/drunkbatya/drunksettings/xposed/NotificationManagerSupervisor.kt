@@ -10,32 +10,22 @@ import android.os.Binder
 import android.os.Process
 import android.os.SystemClock
 import android.os.VibrationEffect
+import android.util.Log
 import android.view.KeyEvent
-import com.drunkbatya.drunksettings.ui.model.NotifDetectMode
 import com.drunkbatya.drunksettings.data.SettingsKeys
-import com.drunkbatya.drunksettings.xposed.hookers.AddServiceHooker
-import com.drunkbatya.drunksettings.xposed.hookers.AreNotificationsEnabledHooker
-import com.drunkbatya.drunksettings.xposed.hookers.BlinkHooker
-import com.drunkbatya.drunksettings.xposed.hookers.CaptureDisplayHooker
-import com.drunkbatya.drunksettings.xposed.hookers.HeadsetKeyHooker
-import com.drunkbatya.drunksettings.xposed.hookers.NotificationChannelHooker
-import com.drunkbatya.drunksettings.xposed.hookers.RegisterContentObserverHooker
-import com.drunkbatya.drunksettings.xposed.hookers.ScreenCaptureRegisterHooker
-import com.drunkbatya.drunksettings.xposed.hookers.SoundHooker
-import com.drunkbatya.drunksettings.xposed.hookers.VibrationHooker
+import com.drunkbatya.drunksettings.ui.model.NotifDetectMode
 import com.drunkbatya.drunksettings.xposed.helpers.XposedHelpers
 import com.drunkbatya.drunksettings.xposed.preferences.ModulePreferences
 import io.github.libxposed.api.XposedInterface
+import io.github.libxposed.api.XposedInterface.Chain
 import io.github.libxposed.api.XposedModule
-import io.github.libxposed.api.XposedModuleInterface
+import io.github.libxposed.api.XposedModuleInterface.ModuleLoadedParam
+import io.github.libxposed.api.XposedModuleInterface.SystemServerStartingParam
 import java.lang.reflect.Method
 import java.util.concurrent.atomic.AtomicReference
 import java.util.concurrent.ConcurrentHashMap
 
-class NotificationManagerSupervisor(
-    base: XposedInterface,
-    param: XposedModuleInterface.ModuleLoadedParam,
-) : XposedModule(base, param) {
+class NotificationManagerSupervisor : XposedModule() {
     private val lastSoundByPackage = ConcurrentHashMap<String, Long>()
     private val systemContextRef = AtomicReference<Context?>()
     private val packageManagerRef = AtomicReference<PackageManager?>()
@@ -43,20 +33,23 @@ class NotificationManagerSupervisor(
     private var notificationHooksInstalled = false
 
     private lateinit var prefs: SharedPreferences
-    private val modulePreferences = ModulePreferences()
+    private val modulePreferences = ModulePreferences(
+        log = { log(it) },
+        logVerbose = { logVerbose(it) },
+    )
     private val prefsListener = SharedPreferences.OnSharedPreferenceChangeListener { shared, key ->
         if (shared != null) {
             modulePreferences.onPreferenceChanged(shared, key)
         }
     }
 
-    init {
-        ModuleBridge.moduleInstance = this
-        log(TAG + "init done")
+    override fun onModuleLoaded(param: ModuleLoadedParam) {
+        super.onModuleLoaded(param)
+        log(TAG + "onModuleLoaded: ${param.processName}")
     }
 
-    override fun onSystemServerLoaded(param: XposedModuleInterface.SystemServerLoadedParam) {
-        log(TAG + "onSystemServerLoaded")
+    override fun onSystemServerStarting(param: SystemServerStartingParam) {
+        log(TAG + "onSystemServerStarting")
         prefs = getRemotePreferences(SettingsKeys.PREFS_NAME)
         modulePreferences.syncAll(prefs)
         prefs.registerOnSharedPreferenceChangeListener(prefsListener)
@@ -80,10 +73,9 @@ class NotificationManagerSupervisor(
             log(TAG + "failed to found class: $className")
             return
         }
-        //hookTargetMethod(attentionClass, "buzzBeepBlinkLocked", BuzzBeepBlinkHooker::class.java)
-        XposedHelpers.hookTargetMethod(this, attentionClass, "playSound", SoundHooker::class.java, logger)
-        XposedHelpers.hookTargetMethod(this, attentionClass, "playVibration", VibrationHooker::class.java, logger)
-        XposedHelpers.hookTargetMethod(this, attentionClass, "canShowLightsLocked", BlinkHooker::class.java, logger)
+        XposedHelpers.hookTargetMethod(this, attentionClass, "playSound", { onSound(it) }, logger)
+        XposedHelpers.hookTargetMethod(this, attentionClass, "playVibration", { onVibration(it) }, logger)
+        XposedHelpers.hookTargetMethod(this, attentionClass, "canShowLightsLocked", { onBlink(it) }, logger)
         log(TAG + "hooks installed for ${attentionClass.name}")
     }
 
@@ -95,7 +87,7 @@ class NotificationManagerSupervisor(
             return
         }
         XposedHelpers.hookTargetMethod(
-            this, pwmClass, "interceptKeyBeforeQueueing", HeadsetKeyHooker::class.java, logger
+            this, pwmClass, "interceptKeyBeforeQueueing", { onHeadsetKey(it) }, logger
         )
         log(TAG + "hooks installed for ${pwmClass.name}")
     }
@@ -113,25 +105,19 @@ class NotificationManagerSupervisor(
             log(TAG + "failed to found class: $className")
             return
         }
-        XposedHelpers.hookTargetMethod(this, smClass, "addService", AddServiceHooker::class.java, logger)
+        XposedHelpers.hookTargetMethod(this, smClass, "addService", { onAddService(it) }, logger)
         log(TAG + "watching ServiceManager.addService for notification service")
     }
 
     private fun installNotificationHooksOnStub(stubClass: Class<*>, logger: (String) -> Unit) {
+        val notifEnabled = XposedInterface.Hooker { onAreNotificationsEnabled(it) }
+        val channel = XposedInterface.Hooker { onNotificationChannel(it) }
+        XposedHelpers.hookTargetMethod(this, stubClass, "areNotificationsEnabled", notifEnabled, logger)
         XposedHelpers.hookTargetMethod(
-            this, stubClass, "areNotificationsEnabled", AreNotificationsEnabledHooker::class.java, logger
+            this, stubClass, "areNotificationsEnabledForPackage", notifEnabled, logger
         )
-        XposedHelpers.hookTargetMethod(
-            this, stubClass, "areNotificationsEnabledForPackage",
-            AreNotificationsEnabledHooker::class.java, logger
-        )
-        XposedHelpers.hookTargetMethod(
-            this, stubClass, "getNotificationChannel", NotificationChannelHooker::class.java, logger
-        )
-        XposedHelpers.hookTargetMethod(
-            this, stubClass, "getNotificationChannelForPackage",
-            NotificationChannelHooker::class.java, logger
-        )
+        XposedHelpers.hookTargetMethod(this, stubClass, "getNotificationChannel", channel, logger)
+        XposedHelpers.hookTargetMethod(this, stubClass, "getNotificationChannelForPackage", channel, logger)
         log(TAG + "notification detection hooks installed on ${stubClass.name}")
     }
 
@@ -143,8 +129,7 @@ class NotificationManagerSupervisor(
             return
         }
         XposedHelpers.hookTargetMethod(
-            this, contentServiceClass, "registerContentObserver",
-            RegisterContentObserverHooker::class.java, logger
+            this, contentServiceClass, "registerContentObserver", { onRegisterContentObserver(it) }, logger
         )
         log(TAG + "hooks installed for ${contentServiceClass.name}")
     }
@@ -161,9 +146,7 @@ class NotificationManagerSupervisor(
             log(TAG + "failed to found class: $className")
             return
         }
-        XposedHelpers.hookTargetMethod(
-            this, wmsClass, "captureDisplay", CaptureDisplayHooker::class.java, logger
-        )
+        XposedHelpers.hookTargetMethod(this, wmsClass, "captureDisplay", { onCaptureDisplay(it) }, logger)
         log(TAG + "hooks installed for ${wmsClass.name}")
     }
 
@@ -175,14 +158,9 @@ class NotificationManagerSupervisor(
             return
         }
         // Block registration of the screen-capture observer and, defensively, its dispatch.
-        XposedHelpers.hookTargetMethod(
-            this, activityRecordClass, "registerCaptureObserver",
-            ScreenCaptureRegisterHooker::class.java, logger
-        )
-        XposedHelpers.hookTargetMethod(
-            this, activityRecordClass, "reportScreenCaptured",
-            ScreenCaptureRegisterHooker::class.java, logger
-        )
+        val hooker = XposedInterface.Hooker { onScreenCaptureRegister(it) }
+        XposedHelpers.hookTargetMethod(this, activityRecordClass, "registerCaptureObserver", hooker, logger)
+        XposedHelpers.hookTargetMethod(this, activityRecordClass, "reportScreenCaptured", hooker, logger)
         log(TAG + "hooks installed for ${activityRecordClass.name}")
     }
 
@@ -197,88 +175,81 @@ class NotificationManagerSupervisor(
         return now - last < limitSeconds * 1000L
     }
 
-    internal fun onSoundBefore(callback: XposedInterface.BeforeHookCallback) {
-        updateSystemContext(callback.thisObject)
-        val method = callback.member as? Method ?: return
-        if (method.returnType != Boolean::class.javaPrimitiveType &&
-            method.returnType != java.lang.Boolean::class.java
-        ) {
-            log(TAG + "unknown method: $method")
-            return
+    private fun returnsBoolean(chain: Chain): Boolean {
+        val method = chain.executable as? Method ?: return true
+        return method.returnType == Boolean::class.javaPrimitiveType ||
+            method.returnType == java.lang.Boolean::class.java
+    }
+
+    private fun onSound(chain: Chain): Any? {
+        updateSystemContext(chain.thisObject)
+        if (!returnsBoolean(chain)) {
+            log(TAG + "unknown method: ${chain.executable}")
+            return chain.proceed()
         }
-        val record = XposedHelpers.findNotificationRecord(callback.args) ?: return
-        val packageName = XposedHelpers.extractPackageName(record) ?: return
+        val record = XposedHelpers.findNotificationRecord(chain.args) ?: return chain.proceed()
+        val packageName = XposedHelpers.extractPackageName(record) ?: return chain.proceed()
         if (shouldMuteNow(packageName)) {
             log(TAG + "muting sound for $packageName, reason: rateLimit")
-            callback.returnAndSkip(false)
-            return
+            return false
         }
-        if (XposedHelpers.isMusicPlaying(systemContextRef.get())
-                && modulePreferences.shouldPreventFadeOutSound()
-            ) {
+        if (XposedHelpers.isMusicPlaying(systemContextRef.get()) &&
+            modulePreferences.shouldPreventFadeOutSound()
+        ) {
             log(TAG + "replacing sound for $packageName to vibration, reason: musicPlaying")
-            val helper = callback.thisObject ?: return
+            val helper = chain.thisObject ?: return chain.proceed()
             val vibration = record.javaClass.getMethod("getVibration").invoke(record) as? VibrationEffect
             if (vibration == null) {
-                val method = helper.javaClass.declaredMethods.firstOrNull {
+                val playVibration = helper.javaClass.declaredMethods.firstOrNull {
                     it.name == "playVibration" && it.parameterTypes.size == 3
-                }?: return
-                callback.returnAndSkip(false)
-                method.invoke(helper, record, VibrationEffect.createOneShot(500, 255), false)
-            } else {
-                callback.returnAndSkip(false)
+                } ?: return chain.proceed()
+                playVibration.invoke(helper, record, VibrationEffect.createOneShot(500, 255), false)
             }
-            return
+            return false
         }
         lastSoundByPackage[packageName] = SystemClock.elapsedRealtime()
+        return chain.proceed()
     }
 
-    internal fun onVibrationBefore(callback: XposedInterface.BeforeHookCallback) {
-        updateSystemContext(callback.thisObject)
-        val method = callback.member as? Method ?: return
-        if (method.returnType != Boolean::class.javaPrimitiveType &&
-            method.returnType != java.lang.Boolean::class.java
-        ) {
-            log(TAG + "unknown method: $method")
-            return
+    private fun onVibration(chain: Chain): Any? {
+        updateSystemContext(chain.thisObject)
+        if (!returnsBoolean(chain)) {
+            log(TAG + "unknown method: ${chain.executable}")
+            return chain.proceed()
         }
-        val record = XposedHelpers.findNotificationRecord(callback.args) ?: return
-        val packageName = XposedHelpers.extractPackageName(record) ?: return
+        val record = XposedHelpers.findNotificationRecord(chain.args) ?: return chain.proceed()
+        val packageName = XposedHelpers.extractPackageName(record) ?: return chain.proceed()
         if (shouldMuteNow(packageName)) {
             log(TAG + "muting vibration for $packageName, reason: rateLimit")
-            callback.returnAndSkip(false)
-            return
+            return false
         }
         lastSoundByPackage[packageName] = SystemClock.elapsedRealtime()
+        return chain.proceed()
     }
 
-    internal fun onBlinkBefore(callback: XposedInterface.BeforeHookCallback) {
-        updateSystemContext(callback.thisObject)
-        val method = callback.member as? Method ?: return
-        if (method.returnType != Boolean::class.javaPrimitiveType &&
-            method.returnType != java.lang.Boolean::class.java
-        ) {
-            log(TAG + "unknown method: $method")
-            return
+    private fun onBlink(chain: Chain): Any? {
+        updateSystemContext(chain.thisObject)
+        if (!returnsBoolean(chain)) {
+            log(TAG + "unknown method: ${chain.executable}")
+            return chain.proceed()
         }
         if (!modulePreferences.shouldMuteBlinkWithSound()) {
-            return
+            return chain.proceed()
         }
-        val record = XposedHelpers.findNotificationRecord(callback.args) ?: return
-        val packageName = XposedHelpers.extractPackageName(record) ?: return
+        val record = XposedHelpers.findNotificationRecord(chain.args) ?: return chain.proceed()
+        val packageName = XposedHelpers.extractPackageName(record) ?: return chain.proceed()
         if (shouldMuteNow(packageName)) {
             log(TAG + "muting blink for $packageName, reason: rateLimit")
-            callback.returnAndSkip(false)
-            return
+            return false
         }
-        if (XposedHelpers.isMusicPlaying(systemContextRef.get())
-            && modulePreferences.shouldPreventFadeOutSound())
-        {
+        if (XposedHelpers.isMusicPlaying(systemContextRef.get()) &&
+            modulePreferences.shouldPreventFadeOutSound()
+        ) {
             log(TAG + "muting blink for $packageName, reason: musicPlaying")
-            callback.returnAndSkip(false)
-            return
+            return false
         }
         lastSoundByPackage[packageName] = SystemClock.elapsedRealtime()
+        return chain.proceed()
     }
 
     private fun updateSystemContext(helper: Any?) {
@@ -295,14 +266,14 @@ class NotificationManagerSupervisor(
         }
     }
 
-    internal fun onHeadsetKeyBefore(callback: XposedInterface.BeforeHookCallback) {
+    private fun onHeadsetKey(chain: Chain): Any? {
         if (!modulePreferences.shouldSwallowHeadsetButton()) {
-            return
+            return chain.proceed()
         }
-        val event = XposedHelpers.findKeyEvent(callback.args) ?: return
+        val event = XposedHelpers.findKeyEvent(chain.args) ?: return chain.proceed()
         val keyCode = event.keyCode
         if (keyCode !in HEADSET_KEYCODES) {
-            return
+            return chain.proceed()
         }
         logVerbose(
             TAG + "headset key seen: code=$keyCode device=${event.deviceId} " +
@@ -311,10 +282,10 @@ class NotificationManagerSupervisor(
         // Wired headset hardware buttons arrive from a real input device (deviceId >= 0);
         // Bluetooth/UI media events are injected with a virtual device id (-1).
         if (event.deviceId < 0) {
-            return
+            return chain.proceed()
         }
         log(TAG + "swallowing wired headset key: code=$keyCode device=${event.deviceId}")
-        callback.returnAndSkip(0)
+        return 0
     }
 
     /**
@@ -326,77 +297,81 @@ class NotificationManagerSupervisor(
         return Binder.getCallingPid() != Process.myPid()
     }
 
-    internal fun onAreNotificationsEnabledBefore(callback: XposedInterface.BeforeHookCallback) {
+    private fun onAreNotificationsEnabled(chain: Chain): Any? {
         if (!isExternalCaller()) {
-            return
+            return chain.proceed()
         }
-        val packageName = XposedHelpers.firstStringArg(callback.args) ?: return
-        when (modulePreferences.resolveNotifDetectMode(packageName)) {
+        val packageName = XposedHelpers.firstStringArg(chain.args) ?: return chain.proceed()
+        return when (modulePreferences.resolveNotifDetectMode(packageName)) {
             NotifDetectMode.FAKE_ON -> {
                 log(TAG + "notif detect: faking ENABLED for $packageName")
-                callback.returnAndSkip(true)
+                true
             }
             NotifDetectMode.FAKE_OFF -> {
                 log(TAG + "notif detect: faking DISABLED for $packageName")
-                callback.returnAndSkip(false)
+                false
             }
-            NotifDetectMode.DIRECT -> {}
+            NotifDetectMode.DIRECT -> chain.proceed()
         }
     }
 
-    internal fun onNotificationChannelAfter(callback: XposedInterface.AfterHookCallback) {
+    private fun onNotificationChannel(chain: Chain): Any? {
+        val result = chain.proceed()
         if (!isExternalCaller()) {
-            return
+            return result
         }
-        val packageName = XposedHelpers.firstStringArg(callback.args) ?: return
+        val packageName = XposedHelpers.firstStringArg(chain.args) ?: return result
         val mode = modulePreferences.resolveNotifDetectMode(packageName)
         if (mode == NotifDetectMode.DIRECT) {
-            return
+            return result
         }
-        val channel = callback.result as? NotificationChannel ?: return
+        val channel = result as? NotificationChannel ?: return result
         val importance = channel.importance
         val targetImportance = when (mode) {
             NotifDetectMode.FAKE_ON ->
                 if (importance == NotificationManager.IMPORTANCE_NONE) {
                     NotificationManager.IMPORTANCE_DEFAULT
                 } else {
-                    return
+                    return result
                 }
             NotifDetectMode.FAKE_OFF ->
                 if (importance != NotificationManager.IMPORTANCE_NONE) {
                     NotificationManager.IMPORTANCE_NONE
                 } else {
-                    return
+                    return result
                 }
-            NotifDetectMode.DIRECT -> return
+            NotifDetectMode.DIRECT -> return result
         }
-        val copy = XposedHelpers.cloneNotificationChannel(channel) ?: return
+        val copy = XposedHelpers.cloneNotificationChannel(channel) ?: return result
         copy.importance = targetImportance
-        callback.setResult(copy)
         log(TAG + "notif detect: channel importance $importance -> $targetImportance for $packageName")
+        return copy
     }
 
-    internal fun onScreenCaptureRegisterBefore(callback: XposedInterface.BeforeHookCallback) {
-        val packageName = XposedHelpers.extractActivityPackageName(callback.thisObject) ?: return
-        logVerbose(TAG + "screen capture hook for $packageName via ${callback.member}")
+    private fun onScreenCaptureRegister(chain: Chain): Any? {
+        val packageName = XposedHelpers.extractActivityPackageName(chain.thisObject)
+            ?: return chain.proceed()
+        logVerbose(TAG + "screen capture hook for $packageName via ${chain.executable}")
         if (modulePreferences.shouldBlockScreenshotDetection(packageName)) {
             log(TAG + "blocking screenshot detection for $packageName")
-            callback.returnAndSkip(null)
+            return null
         }
+        return chain.proceed()
     }
 
-    internal fun onAddServiceBefore(callback: XposedInterface.BeforeHookCallback) {
+    private fun onAddService(chain: Chain): Any? {
         if (notificationHooksInstalled) {
-            return
+            return chain.proceed()
         }
-        val name = callback.args.firstOrNull { it is String } as? String ?: return
+        val name = chain.args.firstOrNull { it is String } as? String
         if (name != "notification") {
-            return
+            return chain.proceed()
         }
-        val binder = callback.args.getOrNull(1) ?: return
+        val binder = chain.args.getOrNull(1) ?: return chain.proceed()
         notificationHooksInstalled = true
         log(TAG + "notification service published, hooking ${binder.javaClass.name}")
         installNotificationHooksOnStub(binder.javaClass) { message -> log(TAG + message) }
+        return chain.proceed()
     }
 
     /**
@@ -405,14 +380,14 @@ class NotificationManagerSupervisor(
      * registrations funnel through ContentService in system_server, so we drop the registration of
      * MediaStore-image observers for targeted apps — their observer then never fires.
      */
-    internal fun onRegisterContentObserverBefore(callback: XposedInterface.BeforeHookCallback) {
-        val uri = callback.args.firstOrNull { it is Uri } as? Uri ?: return
+    private fun onRegisterContentObserver(chain: Chain): Any? {
+        val uri = chain.args.firstOrNull { it is Uri } as? Uri ?: return chain.proceed()
         if (!isMediaStoreImagesUri(uri)) {
-            return
+            return chain.proceed()
         }
         val uid = Binder.getCallingUid()
-        val packageManager = packageManagerFrom(callback.thisObject) ?: return
-        val packages = packageManager.getPackagesForUid(uid) ?: return
+        val packageManager = packageManagerFrom(chain.thisObject) ?: return chain.proceed()
+        val packages = packageManager.getPackagesForUid(uid) ?: return chain.proceed()
         val blocked = packages.firstOrNull { modulePreferences.shouldBlockScreenshotDetection(it) }
         logVerbose(
             TAG + "registerContentObserver media uri=$uri uid=$uid " +
@@ -420,24 +395,26 @@ class NotificationManagerSupervisor(
         )
         if (blocked != null) {
             log(TAG + "blocking MediaStore screenshot observer for $blocked (uid=$uid)")
-            callback.returnAndSkip(null)
+            return null
         }
+        return chain.proceed()
     }
 
-    internal fun onCaptureDisplayBefore(callback: XposedInterface.BeforeHookCallback) {
+    private fun onCaptureDisplay(chain: Chain): Any? {
         if (!modulePreferences.shouldCaptureSecureLayers()) {
-            return
+            return chain.proceed()
         }
         // WindowManagerService.captureDisplay(int displayId, CaptureArgs captureArgs, listener)
-        val captureArgs = callback.args.firstOrNull {
+        val captureArgs = chain.args.firstOrNull {
             it != null && it.javaClass.name.endsWith("CaptureArgs")
         }
         if (captureArgs == null) {
             logVerbose(TAG + "captureDisplay with null CaptureArgs, cannot force secure layers")
-            return
+            return chain.proceed()
         }
         val applied = XposedHelpers.setBooleanField(captureArgs, "mCaptureSecureLayers", true)
         logVerbose(TAG + "captureDisplay: forcing captureSecureLayers=true (applied=$applied)")
+        return chain.proceed()
     }
 
     private fun isMediaStoreImagesUri(uri: Uri): Boolean {
@@ -458,12 +435,18 @@ class NotificationManagerSupervisor(
         return pm
     }
 
+    fun log(message: String) {
+        log(Log.INFO, TAG_LOGCAT, message)
+    }
+
     fun logVerbose(message: String) {
         if (modulePreferences.isVerboseLogging()) {
             log(message)
         }
     }
+
     companion object {
+        private const val TAG_LOGCAT = "DrunkSettings"
         private const val TAG = "DrunkSettings: "
         private val HEADSET_KEYCODES = setOf(
             KeyEvent.KEYCODE_HEADSETHOOK,
@@ -477,5 +460,4 @@ class NotificationManagerSupervisor(
             KeyEvent.KEYCODE_MEDIA_REWIND,
         )
     }
-
 }

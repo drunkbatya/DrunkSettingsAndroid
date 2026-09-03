@@ -1,19 +1,7 @@
 # Xposed
 -adaptresourcefilecontents META-INF/xposed/java_init.list
--keepattributes RuntimeVisibleAnnotations
--keep,allowobfuscation,allowoptimization public class * extends io.github.libxposed.api.XposedModule {
-    public <init>(...);
-    public void onPackageLoaded(...);
-    public void onSystemServerLoaded(...);
-}
--keep,allowoptimization,allowobfuscation @io.github.libxposed.api.annotations.* class * {
-    <fields>;
-    <methods>;
-}
-
-# Reflection-Based Keep Rules
--keepclassmembers class * {
-    @io.github.libxposed.api.annotations.* *;
+-keep,allowoptimization,allowobfuscation public class * extends io.github.libxposed.api.XposedModule {
+    public <init>();
 }
 
 # Kotlin

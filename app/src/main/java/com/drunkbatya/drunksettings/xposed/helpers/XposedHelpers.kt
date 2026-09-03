@@ -22,7 +22,7 @@ object XposedHelpers {
         module: XposedModule,
         targetClass: Class<*>,
         targetMethod: String,
-        hooker: Class<out XposedInterface.Hooker>,
+        hooker: XposedInterface.Hooker,
         log: (String) -> Unit
     ) {
         try {
@@ -35,7 +35,7 @@ object XposedHelpers {
                     continue
                 }
                 runCatching { method.isAccessible = true }
-                module.hook(method, hooker)
+                module.hook(method).intercept(hooker)
                 hooked += 1
             }
             if (hooked == 0) {
@@ -56,7 +56,7 @@ object XposedHelpers {
         return audioManager.isMusicActive
     }
 
-    fun findNotificationRecord(args: Array<Any?>): Any? {
+    fun findNotificationRecord(args: List<Any?>): Any? {
         return args.firstOrNull { arg ->
             arg != null && arg.javaClass.name.endsWith("NotificationRecord")
         }
@@ -69,7 +69,7 @@ object XposedHelpers {
         return runCatching { Class.forName(name, false, classLoader) }.getOrNull()
     }
 
-    fun findKeyEvent(args: Array<Any?>): KeyEvent? {
+    fun findKeyEvent(args: List<Any?>): KeyEvent? {
         return args.firstOrNull { it is KeyEvent } as? KeyEvent
     }
 
@@ -103,7 +103,7 @@ object XposedHelpers {
         }.getOrNull()
     }
 
-    fun firstStringArg(args: Array<Any?>): String? {
+    fun firstStringArg(args: List<Any?>): String? {
         return args.firstOrNull { it is String } as? String
     }
 

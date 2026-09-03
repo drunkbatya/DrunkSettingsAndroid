@@ -3,10 +3,12 @@ package com.drunkbatya.drunksettings.xposed.preferences
 import android.content.SharedPreferences
 import com.drunkbatya.drunksettings.data.SettingsKeys
 import com.drunkbatya.drunksettings.ui.model.NotifDetectMode
-import com.drunkbatya.drunksettings.xposed.ModuleBridge
 import java.util.concurrent.ConcurrentHashMap
 
-class ModulePreferences {
+class ModulePreferences(
+    private val log: (String) -> Unit,
+    private val logVerbose: (String) -> Unit,
+) {
     companion object {
         private const val TAG = "ModulePreferences: "
     }
@@ -64,7 +66,7 @@ class ModulePreferences {
     }
 
     fun syncAll(prefs: SharedPreferences) {
-        ModuleBridge.moduleInstance?.log(TAG + "syncing all settings")
+        log(TAG + "syncing all settings")
         generalMinSoundTimeout = prefs.getInt(SettingsKeys.GENERAL_MIN_SOUND, 0)
         doNotFadeOutMusic = prefs.getBoolean(SettingsKeys.GENERAL_DO_NOT_FADE_OUT, false)
         alsoMuteBlink = prefs.getBoolean(SettingsKeys.DEBUG_ALSO_MUTE_BLINK, false)
@@ -97,9 +99,9 @@ class ModulePreferences {
             syncAll(prefs)
             return
         }
-        ModuleBridge.moduleInstance?.log(TAG + "settings changed in UI, key: $key")
+        log(TAG + "settings changed in UI, key: $key")
         val newValue = applyChange(prefs, key) ?: return
-        ModuleBridge.moduleInstance?.logVerbose(TAG + "key: $key, new value: $newValue")
+        logVerbose(TAG + "key: $key, new value: $newValue")
     }
 
     private fun applyChange(prefs: SharedPreferences, key: String): Any? = when (key) {
