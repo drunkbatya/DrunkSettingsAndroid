@@ -137,6 +137,14 @@ class SettingsStore(private val service: XposedService) {
         prefs.edit(commit = true) { putBoolean(SettingsKeys.FINGERPRINT_SCREEN_ON_ONLY, enabled) }
     }
 
+    fun getPowerToggleFlashlight(): Boolean {
+        return prefs.getBoolean(SettingsKeys.POWER_TOGGLE_FLASHLIGHT, false)
+    }
+
+    fun setPowerToggleFlashlight(enabled: Boolean) {
+        prefs.edit(commit = true) { putBoolean(SettingsKeys.POWER_TOGGLE_FLASHLIGHT, enabled) }
+    }
+
     fun wipeAll() {
         service.deleteRemotePreferences(SettingsKeys.PREFS_NAME)
     }

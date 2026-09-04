@@ -34,6 +34,8 @@ class NotificationManagerSupervisor : XposedModule() {
     @Volatile
     private var notificationHooksInstalled = false
 
+    private var powerButtonFlashlight: PowerButtonFlashlight? = null
+
     private lateinit var prefs: SharedPreferences
     private val modulePreferences = ModulePreferences(
         log = { log(it) },
@@ -141,10 +143,27 @@ class NotificationManagerSupervisor : XposedModule() {
             log(TAG + "failed to found class: $className")
             return
         }
+        powerButtonFlashlight = PowerButtonFlashlight(
+            log = { log(TAG + it) },
+            logVerbose = { logVerbose(TAG + it) },
+        )
         XposedHelpers.hookTargetMethod(
-            this, pwmClass, "interceptKeyBeforeQueueing", { onHeadsetKey(it) }, logger
+            this, pwmClass, "interceptKeyBeforeQueueing", { onInterceptKeyBeforeQueueing(it) }, logger
         )
         log(TAG + "hooks installed for ${pwmClass.name}")
+    }
+
+    private fun onInterceptKeyBeforeQueueing(chain: Chain): Any? {
+        val event = XposedHelpers.findKeyEvent(chain.args)
+        if (event != null && event.keyCode == KeyEvent.KEYCODE_POWER) {
+            val flashlight = powerButtonFlashlight
+            if (flashlight != null && modulePreferences.shouldPowerToggleFlashlight()) {
+                val context = XposedHelpers.readContextField(chain.thisObject) ?: systemContextRef.get()
+                flashlight.onPowerKey(event, context)?.let { return it }
+            }
+            return chain.proceed()
+        }
+        return onHeadsetKey(chain)
     }
 
     /**
