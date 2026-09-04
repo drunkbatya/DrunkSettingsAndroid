@@ -13,6 +13,7 @@ import com.drunkbatya.drunksettings.ui.screens.DebugNotificationsScreen
 import com.drunkbatya.drunksettings.ui.screens.DebugScreen
 import com.drunkbatya.drunksettings.ui.screens.DebugSystemFlagsScreen
 import com.drunkbatya.drunksettings.ui.screens.GeneralScreen
+import com.drunkbatya.drunksettings.ui.screens.LockscreenScreen
 import com.drunkbatya.drunksettings.ui.screens.MainScreen
 import com.drunkbatya.drunksettings.ui.screens.NotificationsScreen
 import com.drunkbatya.drunksettings.ui.screens.PrivacyScreen
@@ -35,6 +36,7 @@ fun SettingsApp() {
         Screen.Main -> MainScreen(
             onOpenNotifications = { backStack.add(Screen.Notifications) },
             onOpenPrivacy = { backStack.add(Screen.Privacy) },
+            onOpenLockscreen = { backStack.add(Screen.Lockscreen) },
             onOpenDebug = { backStack.add(Screen.Debug) },
             onOpenAbout = { backStack.add(Screen.About) }
         )
@@ -54,6 +56,9 @@ fun SettingsApp() {
             onOpenSystemFlags = { backStack.add(Screen.DebugSystemFlags) }
         )
         Screen.General -> GeneralScreen(
+            onBack = { onBack.value.invoke() }
+        )
+        Screen.Lockscreen -> LockscreenScreen(
             onBack = { onBack.value.invoke() }
         )
         Screen.AppNotifications -> AppNotificationsScreen(
@@ -95,6 +100,7 @@ sealed interface Screen {
     data object About : Screen
     data object General : Screen
     data object Privacy : Screen
+    data object Lockscreen : Screen
     data object AppNotifications : Screen
     data class AppDetail(val packageName: String, val label: String) : Screen
 }

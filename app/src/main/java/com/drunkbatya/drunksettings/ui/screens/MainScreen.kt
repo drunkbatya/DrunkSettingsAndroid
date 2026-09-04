@@ -4,6 +4,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.BugReport
 import androidx.compose.material.icons.rounded.Info
+import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material.icons.rounded.Shield
 import androidx.compose.runtime.Composable
@@ -15,6 +16,7 @@ import com.drunkbatya.drunksettings.ui.components.SettingsScaffold
 fun MainScreen(
     onOpenNotifications: () -> Unit,
     onOpenPrivacy: () -> Unit,
+    onOpenLockscreen: () -> Unit,
     onOpenDebug: () -> Unit,
     onOpenAbout: () -> Unit
 ) {
@@ -44,6 +46,19 @@ fun MainScreen(
                         )
                     },
                     onClick = onOpenPrivacy
+                )
+            }
+            item {
+                SettingsListItem(
+                    title = "Lockscreen",
+                    summary = "Fingerprint and power button behaviour",
+                    leadingContent = {
+                        SettingsIcon(
+                            icon = Icons.Rounded.Lock,
+                            contentDescription = null
+                        )
+                    },
+                    onClick = onOpenLockscreen
                 )
             }
             item {

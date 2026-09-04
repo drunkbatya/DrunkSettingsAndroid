@@ -7,6 +7,7 @@ import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Binder
+import android.os.PowerManager
 import android.os.Process
 import android.os.SystemClock
 import android.os.VibrationEffect
@@ -20,6 +21,7 @@ import io.github.libxposed.api.XposedInterface
 import io.github.libxposed.api.XposedInterface.Chain
 import io.github.libxposed.api.XposedModule
 import io.github.libxposed.api.XposedModuleInterface.ModuleLoadedParam
+import io.github.libxposed.api.XposedModuleInterface.PackageLoadedParam
 import io.github.libxposed.api.XposedModuleInterface.SystemServerStartingParam
 import java.lang.reflect.Method
 import java.util.concurrent.atomic.AtomicReference
@@ -50,10 +52,24 @@ class NotificationManagerSupervisor : XposedModule() {
 
     override fun onSystemServerStarting(param: SystemServerStartingParam) {
         log(TAG + "onSystemServerStarting")
+        loadPreferences()
+        installHooks(param.classLoader)
+    }
+
+    override fun onPackageLoaded(param: PackageLoadedParam) {
+        super.onPackageLoaded(param)
+        if (param.packageName != SYSTEMUI_PACKAGE || !param.isFirstPackage) {
+            return
+        }
+        log(TAG + "onPackageLoaded: ${param.packageName}")
+        loadPreferences()
+        installFingerprintGateHooks(param.defaultClassLoader)
+    }
+
+    private fun loadPreferences() {
         prefs = getRemotePreferences(SettingsKeys.PREFS_NAME)
         modulePreferences.syncAll(prefs)
         prefs.registerOnSharedPreferenceChangeListener(prefsListener)
-        installHooks(param.classLoader)
     }
 
     private fun installHooks(classLoader: ClassLoader) {
@@ -64,6 +80,45 @@ class NotificationManagerSupervisor : XposedModule() {
         installScreenshotDetectionHooks(classLoader, logger)
         installMediaStoreObserverHooks(classLoader, logger)
         installSecureCaptureHooks(classLoader, logger)
+    }
+
+    /**
+     * Fingerprint listening is armed from SystemUI's KeyguardUpdateMonitor. Its
+     * shouldListenForFingerprint() returns true while the device is non-interactive (that is what
+     * enables wake-on-fingerprint). Forcing it false when the screen is off makes
+     * updateFingerprintListeningState cancel the HAL session on sleep and re-arm it on wake — the
+     * sensor only scans while the screen is on, with no lockout from pocket touches.
+     */
+    private fun installFingerprintGateHooks(classLoader: ClassLoader) {
+        val logger = { message: String -> log(TAG + message) }
+        val className = "com.android.keyguard.KeyguardUpdateMonitor"
+        val kumClass = XposedHelpers.findClass(className, classLoader)
+        if (kumClass == null) {
+            log(TAG + "failed to found class: $className")
+            return
+        }
+        XposedHelpers.hookTargetMethod(
+            this, kumClass, "shouldListenForFingerprint", { onShouldListenForFingerprint(it) }, logger
+        )
+        log(TAG + "hooks installed for ${kumClass.name}")
+    }
+
+    private fun onShouldListenForFingerprint(chain: Chain): Any? {
+        if (!modulePreferences.shouldGateFingerprintToScreenOn()) {
+            return chain.proceed()
+        }
+        if (isScreenInteractive(chain.thisObject) == false) {
+            logVerbose(TAG + "fingerprint listen suppressed: screen off")
+            return false
+        }
+        return chain.proceed()
+    }
+
+    private fun isScreenInteractive(monitor: Any?): Boolean? {
+        XposedHelpers.readBooleanField(monitor, "mDeviceInteractive")?.let { return it }
+        val context = XposedHelpers.readContextField(monitor) ?: return null
+        val powerManager = context.getSystemService(Context.POWER_SERVICE) as? PowerManager
+        return powerManager?.isInteractive
     }
 
     private fun installNotificationAttentionHooks(classLoader: ClassLoader, logger: (String) -> Unit) {
@@ -449,6 +504,7 @@ class NotificationManagerSupervisor : XposedModule() {
     companion object {
         private const val TAG_LOGCAT = "DrunkSettings"
         private const val TAG = "DrunkSettings: "
+        private const val SYSTEMUI_PACKAGE = "com.android.systemui"
         private val HEADSET_KEYCODES = setOf(
             KeyEvent.KEYCODE_HEADSETHOOK,
             KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE,

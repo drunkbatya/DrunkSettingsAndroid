@@ -11,6 +11,7 @@ object SettingsKeys {
     const val NOTIF_DETECT_MODE = "notif_detect_mode"
     const val SCREENSHOT_BLOCK = "screenshot_block"
     const val CAPTURE_SECURE_LAYERS = "capture_secure_layers"
+    const val FINGERPRINT_SCREEN_ON_ONLY = "fingerprint_screen_on_only"
 
     const val APP_MIN_SOUND_PREFIX = "min_notification_sound_timeout_"
     const val NOTIF_DETECT_APP_PREFIX = "notif_detect_mode_"

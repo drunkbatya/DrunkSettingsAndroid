@@ -29,6 +29,8 @@ class ModulePreferences(
     private var screenshotBlockGlobal = false
     @Volatile
     private var captureSecureLayers = false
+    @Volatile
+    private var fingerprintScreenOnOnly = false
     private val appTimeouts = ConcurrentHashMap<String, Int>()
     private val notifDetectByApp = ConcurrentHashMap<String, NotifDetectMode>()
     private val screenshotBlockByApp = ConcurrentHashMap<String, Boolean>()
@@ -65,6 +67,10 @@ class ModulePreferences(
         return captureSecureLayers
     }
 
+    fun shouldGateFingerprintToScreenOn(): Boolean {
+        return fingerprintScreenOnOnly
+    }
+
     fun syncAll(prefs: SharedPreferences) {
         log(TAG + "syncing all settings")
         generalMinSoundTimeout = prefs.getInt(SettingsKeys.GENERAL_MIN_SOUND, 0)
@@ -75,6 +81,7 @@ class ModulePreferences(
         notifDetectGlobal = NotifDetectMode.fromStorage(prefs.getString(SettingsKeys.NOTIF_DETECT_MODE, null))
         screenshotBlockGlobal = prefs.getBoolean(SettingsKeys.SCREENSHOT_BLOCK, false)
         captureSecureLayers = prefs.getBoolean(SettingsKeys.CAPTURE_SECURE_LAYERS, false)
+        fingerprintScreenOnOnly = prefs.getBoolean(SettingsKeys.FINGERPRINT_SCREEN_ON_ONLY, false)
         appTimeouts.clear()
         notifDetectByApp.clear()
         screenshotBlockByApp.clear()
@@ -114,6 +121,8 @@ class ModulePreferences(
             NotifDetectMode.fromStorage(prefs.getString(key, null)).also { notifDetectGlobal = it }
         SettingsKeys.SCREENSHOT_BLOCK -> prefs.getBoolean(key, false).also { screenshotBlockGlobal = it }
         SettingsKeys.CAPTURE_SECURE_LAYERS -> prefs.getBoolean(key, false).also { captureSecureLayers = it }
+        SettingsKeys.FINGERPRINT_SCREEN_ON_ONLY ->
+            prefs.getBoolean(key, false).also { fingerprintScreenOnOnly = it }
         else -> applyAppChange(prefs, key)
     }
 

@@ -93,6 +93,23 @@ object XposedHelpers {
         return false
     }
 
+    /** Reads a boolean field by name, walking up the class hierarchy. Null when absent. */
+    fun readBooleanField(instance: Any?, fieldName: String): Boolean? {
+        if (instance == null) return null
+        var cls: Class<*>? = instance.javaClass
+        while (cls != null) {
+            val field = runCatching { cls!!.getDeclaredField(fieldName) }.getOrNull()
+            if (field != null) {
+                return runCatching {
+                    field.isAccessible = true
+                    field.getBoolean(instance)
+                }.getOrNull()
+            }
+            cls = cls.superclass
+        }
+        return null
+    }
+
     /** Reads a `mContext` field (present on most system_server services) reflectively. */
     fun readContextField(instance: Any?): Context? {
         if (instance == null) return null

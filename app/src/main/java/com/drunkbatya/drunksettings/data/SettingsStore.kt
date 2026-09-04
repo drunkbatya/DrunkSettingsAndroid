@@ -127,6 +127,16 @@ class SettingsStore(private val service: XposedService) {
         prefs.edit(commit = true) { putBoolean(SettingsKeys.CAPTURE_SECURE_LAYERS, enabled) }
     }
 
+    // --- Fingerprint gating ---
+
+    fun getFingerprintScreenOnOnly(): Boolean {
+        return prefs.getBoolean(SettingsKeys.FINGERPRINT_SCREEN_ON_ONLY, false)
+    }
+
+    fun setFingerprintScreenOnOnly(enabled: Boolean) {
+        prefs.edit(commit = true) { putBoolean(SettingsKeys.FINGERPRINT_SCREEN_ON_ONLY, enabled) }
+    }
+
     fun wipeAll() {
         service.deleteRemotePreferences(SettingsKeys.PREFS_NAME)
     }
